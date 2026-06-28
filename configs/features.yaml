@@ -1,0 +1,8 @@
+﻿feature_sets:
+  - lm
+  - readability
+  - lexical
+  - financial
+  - semantic
+  - embeddings
+

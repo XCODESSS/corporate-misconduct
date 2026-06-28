@@ -1,0 +1,8 @@
+﻿models:
+  - logistic_regression
+  - random_forest
+  - xgboost
+  - lightgbm
+  - catboost
+  - neural_network
+

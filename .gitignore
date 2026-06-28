@@ -1,0 +1,19 @@
+﻿# =========================
+# Raw datasets
+# =========================
+data/raw/
+data/interim/
+data/processed/
+artifacts/
+
+# Large local files
+*.parquet
+*.csv
+*.json
+
+# Keep config JSON/YAML tracked
+!configs/*.json
+!configs/*.yaml
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
