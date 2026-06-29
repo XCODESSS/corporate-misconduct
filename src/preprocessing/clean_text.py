@@ -125,11 +125,15 @@ class MdaTextCleaner:
 
         frame = pd.DataFrame.from_records(batch)
 
-        object_cols = frame.select_dtypes(
-            include=["object"]
-        ).columns
+        object_cols = frame.columns[
+            frame.dtypes == "object"
+        ]
 
-        frame[object_cols] = frame[object_cols].astype("string")
+        if len(object_cols) > 0:
+            frame[object_cols] = (
+                frame[object_cols]
+                .astype("string")
+            )
 
         if writer is not None:
             table = pa.Table.from_pandas(
