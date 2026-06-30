@@ -50,8 +50,8 @@ class DatasetSplitter:
     """
 
     INPUT_FILE = (
-        settings.INTERIM_CLEANED_DIR
-        / "quality_checked_firm_years.parquet"
+    settings.INTERIM_CLEANED_DIR
+    / "deduplicated_firm_years.parquet"
     )
 
     OUTPUT_DIR = settings.DATASETS_DIR
@@ -65,7 +65,7 @@ class DatasetSplitter:
         / "split_report.json"
     )
 
-    TEST_CUTOFF_YEAR = 2023
+    TEST_CUTOFF_YEAR = 2019
 
     def __init__(self) -> None:
 

@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 
 
 class Deduplicator:
-    INPUT_FILE = settings.INTERIM_CLEANED_DIR / "normalized_firm_years.parquet"
+    INPUT_FILE = settings.INTERIM_CLEANED_DIR / "quality_checked_firm_years.parquet"
     OUTPUT_FILE = settings.INTERIM_CLEANED_DIR / "deduplicated_firm_years.parquet"
     REPORT_FILE = settings.INTERIM_VALIDATED_DIR / "deduplication_report.json"
 
@@ -108,13 +108,11 @@ class Deduplicator:
         parquet = pq.ParquetFile(self.INPUT_FILE)
         writer = None
         try:
-            batch_no = 0
-            for batch in parquet.iter_batches(batch_size=256):
-                batch_no += 1
+            for batch_no, batch in enumerate(parquet.iter_batches(batch_size=4096), start=1):
                 table = self.process_batch(batch)
-                if writer is None:
-                    writer = pq.ParquetWriter(self.OUTPUT_FILE, table.schema, compression="snappy")
                 if table.num_rows:
+                    if writer is None:
+                        writer = pq.ParquetWriter(self.OUTPUT_FILE, table.schema, compression="snappy")
                     writer.write_table(table)
                 logger.info(
                     "Batch %d | Read=%d Written=%d Duplicates=%d",

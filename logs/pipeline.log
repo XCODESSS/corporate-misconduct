@@ -14447,3 +14447,1273 @@
 2026-06-29 14:03:30 | INFO     | __main__ | Cleaning complete | read=94967 | written=94967 | skipped=0
 2026-06-29 14:03:30 | INFO     | __main__ | Output: D:\coperate-misconduct-warning\data\interim\cleaned\cleaned_firm_years.parquet
 2026-06-29 14:03:30 | INFO     | __main__ | ======================================================================
+2026-06-30 01:12:21 | INFO     | __main__ | ======================================================================
+2026-06-30 01:12:21 | INFO     | __main__ | Starting MD&A text cleaning...
+2026-06-30 01:42:31 | INFO     | __main__ | Cleaning complete | read=94967 | written=94967 | skipped=0
+2026-06-30 01:42:31 | INFO     | __main__ | Output: D:\coperate-misconduct-warning\data\interim\cleaned\cleaned_firm_years.parquet
+2026-06-30 01:42:31 | INFO     | __main__ | ======================================================================
+2026-06-30 01:52:43 | INFO     | __main__ | ======================================================================
+2026-06-30 01:52:43 | INFO     | __main__ | Starting normalization pipeline...
+2026-06-30 01:52:43 | INFO     | __main__ | Reading cleaned dataset...
+2026-06-30 02:13:07 | INFO     | __main__ | Normalization complete.
+2026-06-30 02:13:07 | INFO     | __main__ | Rows read: 94967
+2026-06-30 02:13:07 | INFO     | __main__ | Rows written: 94967
+2026-06-30 02:13:07 | INFO     | __main__ | Validating normalized dataset...
+2026-06-30 02:13:47 | WARNING  | __main__ | Found 10235 empty MDA records.
+2026-06-30 02:13:47 | INFO     | __main__ | Validation successful.
+2026-06-30 02:13:48 | INFO     | __main__ | Normalization Summary
+2026-06-30 02:13:48 | INFO     | __main__ | rows_read: 94967
+2026-06-30 02:13:48 | INFO     | __main__ | rows_written: 94967
+2026-06-30 02:13:48 | INFO     | __main__ | Normalized dataset written to:
+2026-06-30 02:13:48 | INFO     | __main__ | D:\coperate-misconduct-warning\data\interim\cleaned\normalized_firm_years.parquet
+2026-06-30 02:13:48 | INFO     | __main__ | ======================================================================
+2026-06-30 02:29:30 | INFO     | __main__ | ======================================================================
+2026-06-30 02:29:30 | INFO     | __main__ | Starting quality checks...
+2026-06-30 02:29:30 | INFO     | __main__ | Reading normalized dataset...
+2026-06-30 02:29:33 | INFO     | __main__ | Batch 1 | Read=256 | Written=188
+2026-06-30 02:32:18 | INFO     | __main__ | ======================================================================
+2026-06-30 02:32:18 | INFO     | __main__ | Starting quality checks...
+2026-06-30 02:32:18 | INFO     | __main__ | Reading normalized dataset...
+2026-06-30 02:32:20 | INFO     | __main__ | Batch 1 | Read=256 | Written=188
+2026-06-30 02:32:20 | INFO     | __main__ | Batch 1 | Read=256 | Written=188
+2026-06-30 02:34:45 | INFO     | __main__ | ======================================================================
+2026-06-30 02:34:45 | INFO     | __main__ | Starting quality checks...
+2026-06-30 02:34:45 | INFO     | __main__ | Reading normalized dataset...
+2026-06-30 02:34:46 | INFO     | __main__ | Batch 1 | Read=256 | Written=188
+2026-06-30 02:34:46 | INFO     | __main__ | Batch 1 | Read=256 | Written=188
+2026-06-30 02:34:47 | INFO     | __main__ | Batch 2 | Read=512 | Written=370
+2026-06-30 02:34:47 | INFO     | __main__ | Batch 2 | Read=512 | Written=370
+2026-06-30 02:34:48 | INFO     | __main__ | Batch 3 | Read=768 | Written=533
+2026-06-30 02:34:48 | INFO     | __main__ | Batch 3 | Read=768 | Written=533
+2026-06-30 02:34:49 | INFO     | __main__ | Batch 4 | Read=1024 | Written=732
+2026-06-30 02:34:49 | INFO     | __main__ | Batch 4 | Read=1024 | Written=732
+2026-06-30 02:34:49 | INFO     | __main__ | Batch 5 | Read=1280 | Written=913
+2026-06-30 02:34:49 | INFO     | __main__ | Batch 5 | Read=1280 | Written=913
+2026-06-30 02:34:50 | INFO     | __main__ | Batch 6 | Read=1536 | Written=1101
+2026-06-30 02:34:50 | INFO     | __main__ | Batch 6 | Read=1536 | Written=1101
+2026-06-30 02:34:50 | INFO     | __main__ | Batch 7 | Read=1792 | Written=1251
+2026-06-30 02:34:50 | INFO     | __main__ | Batch 7 | Read=1792 | Written=1251
+2026-06-30 02:34:52 | INFO     | __main__ | Batch 8 | Read=2048 | Written=1449
+2026-06-30 02:34:52 | INFO     | __main__ | Batch 8 | Read=2048 | Written=1449
+2026-06-30 02:34:53 | INFO     | __main__ | Batch 9 | Read=2304 | Written=1628
+2026-06-30 02:34:53 | INFO     | __main__ | Batch 9 | Read=2304 | Written=1628
+2026-06-30 02:34:55 | INFO     | __main__ | Batch 10 | Read=2560 | Written=1791
+2026-06-30 02:34:55 | INFO     | __main__ | Batch 10 | Read=2560 | Written=1791
+2026-06-30 02:34:57 | INFO     | __main__ | Batch 11 | Read=2816 | Written=1937
+2026-06-30 02:34:57 | INFO     | __main__ | Batch 11 | Read=2816 | Written=1937
+2026-06-30 02:34:58 | INFO     | __main__ | Batch 12 | Read=3072 | Written=2116
+2026-06-30 02:34:58 | INFO     | __main__ | Batch 12 | Read=3072 | Written=2116
+2026-06-30 02:35:00 | INFO     | __main__ | Batch 13 | Read=3328 | Written=2316
+2026-06-30 02:35:00 | INFO     | __main__ | Batch 13 | Read=3328 | Written=2316
+2026-06-30 02:35:01 | INFO     | __main__ | Batch 14 | Read=3584 | Written=2506
+2026-06-30 02:35:01 | INFO     | __main__ | Batch 14 | Read=3584 | Written=2506
+2026-06-30 02:35:02 | INFO     | __main__ | Batch 15 | Read=3840 | Written=2654
+2026-06-30 02:35:02 | INFO     | __main__ | Batch 15 | Read=3840 | Written=2654
+2026-06-30 02:35:04 | INFO     | __main__ | Batch 16 | Read=4096 | Written=2854
+2026-06-30 02:35:04 | INFO     | __main__ | Batch 16 | Read=4096 | Written=2854
+2026-06-30 02:35:05 | INFO     | __main__ | Batch 17 | Read=4352 | Written=3019
+2026-06-30 02:35:05 | INFO     | __main__ | Batch 17 | Read=4352 | Written=3019
+2026-06-30 02:35:06 | INFO     | __main__ | Batch 18 | Read=4608 | Written=3201
+2026-06-30 02:35:06 | INFO     | __main__ | Batch 18 | Read=4608 | Written=3201
+2026-06-30 02:35:07 | INFO     | __main__ | Batch 19 | Read=4864 | Written=3371
+2026-06-30 02:35:07 | INFO     | __main__ | Batch 19 | Read=4864 | Written=3371
+2026-06-30 02:35:08 | INFO     | __main__ | Batch 20 | Read=5120 | Written=3558
+2026-06-30 02:35:08 | INFO     | __main__ | Batch 20 | Read=5120 | Written=3558
+2026-06-30 02:35:10 | INFO     | __main__ | Batch 21 | Read=5376 | Written=3698
+2026-06-30 02:35:10 | INFO     | __main__ | Batch 21 | Read=5376 | Written=3698
+2026-06-30 02:35:11 | INFO     | __main__ | Batch 22 | Read=5632 | Written=3846
+2026-06-30 02:35:11 | INFO     | __main__ | Batch 22 | Read=5632 | Written=3846
+2026-06-30 02:35:12 | INFO     | __main__ | Batch 23 | Read=5888 | Written=4020
+2026-06-30 02:35:12 | INFO     | __main__ | Batch 23 | Read=5888 | Written=4020
+2026-06-30 02:35:14 | INFO     | __main__ | Batch 24 | Read=6144 | Written=4174
+2026-06-30 02:35:14 | INFO     | __main__ | Batch 24 | Read=6144 | Written=4174
+2026-06-30 02:35:16 | INFO     | __main__ | Batch 25 | Read=6400 | Written=4364
+2026-06-30 02:35:16 | INFO     | __main__ | Batch 25 | Read=6400 | Written=4364
+2026-06-30 02:35:17 | INFO     | __main__ | Batch 26 | Read=6656 | Written=4541
+2026-06-30 02:35:17 | INFO     | __main__ | Batch 26 | Read=6656 | Written=4541
+2026-06-30 02:35:18 | INFO     | __main__ | Batch 27 | Read=6912 | Written=4722
+2026-06-30 02:35:18 | INFO     | __main__ | Batch 27 | Read=6912 | Written=4722
+2026-06-30 02:35:19 | INFO     | __main__ | Batch 28 | Read=7168 | Written=4909
+2026-06-30 02:35:19 | INFO     | __main__ | Batch 28 | Read=7168 | Written=4909
+2026-06-30 02:35:20 | INFO     | __main__ | Batch 29 | Read=7424 | Written=5082
+2026-06-30 02:35:20 | INFO     | __main__ | Batch 29 | Read=7424 | Written=5082
+2026-06-30 02:35:21 | INFO     | __main__ | Batch 30 | Read=7680 | Written=5274
+2026-06-30 02:35:21 | INFO     | __main__ | Batch 30 | Read=7680 | Written=5274
+2026-06-30 02:35:23 | INFO     | __main__ | Batch 31 | Read=7936 | Written=5462
+2026-06-30 02:35:23 | INFO     | __main__ | Batch 31 | Read=7936 | Written=5462
+2026-06-30 02:35:24 | INFO     | __main__ | Batch 32 | Read=8192 | Written=5642
+2026-06-30 02:35:24 | INFO     | __main__ | Batch 32 | Read=8192 | Written=5642
+2026-06-30 02:35:26 | INFO     | __main__ | Batch 33 | Read=8448 | Written=5832
+2026-06-30 02:35:26 | INFO     | __main__ | Batch 33 | Read=8448 | Written=5832
+2026-06-30 02:35:27 | INFO     | __main__ | Batch 34 | Read=8704 | Written=5978
+2026-06-30 02:35:27 | INFO     | __main__ | Batch 34 | Read=8704 | Written=5978
+2026-06-30 02:35:27 | INFO     | __main__ | Batch 35 | Read=8960 | Written=6140
+2026-06-30 02:35:27 | INFO     | __main__ | Batch 35 | Read=8960 | Written=6140
+2026-06-30 02:35:28 | INFO     | __main__ | Batch 36 | Read=9216 | Written=6323
+2026-06-30 02:35:28 | INFO     | __main__ | Batch 36 | Read=9216 | Written=6323
+2026-06-30 02:35:30 | INFO     | __main__ | Batch 37 | Read=9472 | Written=6538
+2026-06-30 02:35:30 | INFO     | __main__ | Batch 37 | Read=9472 | Written=6538
+2026-06-30 02:35:32 | INFO     | __main__ | Batch 38 | Read=9728 | Written=6738
+2026-06-30 02:35:32 | INFO     | __main__ | Batch 38 | Read=9728 | Written=6738
+2026-06-30 02:35:33 | INFO     | __main__ | Batch 39 | Read=9984 | Written=6937
+2026-06-30 02:35:33 | INFO     | __main__ | Batch 39 | Read=9984 | Written=6937
+2026-06-30 02:35:34 | INFO     | __main__ | Batch 40 | Read=10240 | Written=7068
+2026-06-30 02:35:34 | INFO     | __main__ | Batch 40 | Read=10240 | Written=7068
+2026-06-30 02:35:35 | INFO     | __main__ | Batch 41 | Read=10496 | Written=7220
+2026-06-30 02:35:35 | INFO     | __main__ | Batch 41 | Read=10496 | Written=7220
+2026-06-30 02:35:37 | INFO     | __main__ | Batch 42 | Read=10752 | Written=7415
+2026-06-30 02:35:37 | INFO     | __main__ | Batch 42 | Read=10752 | Written=7415
+2026-06-30 02:35:38 | INFO     | __main__ | Batch 43 | Read=11008 | Written=7592
+2026-06-30 02:35:38 | INFO     | __main__ | Batch 43 | Read=11008 | Written=7592
+2026-06-30 02:35:39 | INFO     | __main__ | Batch 44 | Read=11264 | Written=7784
+2026-06-30 02:35:39 | INFO     | __main__ | Batch 44 | Read=11264 | Written=7784
+2026-06-30 02:35:40 | INFO     | __main__ | Batch 45 | Read=11520 | Written=7973
+2026-06-30 02:35:40 | INFO     | __main__ | Batch 45 | Read=11520 | Written=7973
+2026-06-30 02:35:41 | INFO     | __main__ | Batch 46 | Read=11776 | Written=8135
+2026-06-30 02:35:41 | INFO     | __main__ | Batch 46 | Read=11776 | Written=8135
+2026-06-30 02:35:42 | INFO     | __main__ | Batch 47 | Read=12032 | Written=8284
+2026-06-30 02:35:42 | INFO     | __main__ | Batch 47 | Read=12032 | Written=8284
+2026-06-30 02:35:43 | INFO     | __main__ | Batch 48 | Read=12288 | Written=8434
+2026-06-30 02:35:43 | INFO     | __main__ | Batch 48 | Read=12288 | Written=8434
+2026-06-30 02:35:45 | INFO     | __main__ | Batch 49 | Read=12544 | Written=8594
+2026-06-30 02:35:45 | INFO     | __main__ | Batch 49 | Read=12544 | Written=8594
+2026-06-30 02:35:47 | INFO     | __main__ | Batch 50 | Read=12800 | Written=8787
+2026-06-30 02:35:47 | INFO     | __main__ | Batch 50 | Read=12800 | Written=8787
+2026-06-30 02:35:48 | INFO     | __main__ | Batch 51 | Read=13056 | Written=8979
+2026-06-30 02:35:48 | INFO     | __main__ | Batch 51 | Read=13056 | Written=8979
+2026-06-30 02:35:49 | INFO     | __main__ | Batch 52 | Read=13312 | Written=9162
+2026-06-30 02:35:49 | INFO     | __main__ | Batch 52 | Read=13312 | Written=9162
+2026-06-30 02:35:50 | INFO     | __main__ | Batch 53 | Read=13568 | Written=9332
+2026-06-30 02:35:50 | INFO     | __main__ | Batch 53 | Read=13568 | Written=9332
+2026-06-30 02:35:51 | INFO     | __main__ | Batch 54 | Read=13824 | Written=9534
+2026-06-30 02:35:51 | INFO     | __main__ | Batch 54 | Read=13824 | Written=9534
+2026-06-30 02:35:52 | INFO     | __main__ | Batch 55 | Read=14080 | Written=9654
+2026-06-30 02:35:52 | INFO     | __main__ | Batch 55 | Read=14080 | Written=9654
+2026-06-30 02:35:53 | INFO     | __main__ | Batch 56 | Read=14336 | Written=9828
+2026-06-30 02:35:53 | INFO     | __main__ | Batch 56 | Read=14336 | Written=9828
+2026-06-30 02:35:55 | INFO     | __main__ | Batch 57 | Read=14592 | Written=10008
+2026-06-30 02:35:55 | INFO     | __main__ | Batch 57 | Read=14592 | Written=10008
+2026-06-30 02:35:56 | INFO     | __main__ | Batch 58 | Read=14848 | Written=10158
+2026-06-30 02:35:56 | INFO     | __main__ | Batch 58 | Read=14848 | Written=10158
+2026-06-30 02:35:57 | INFO     | __main__ | Batch 59 | Read=15104 | Written=10344
+2026-06-30 02:35:57 | INFO     | __main__ | Batch 59 | Read=15104 | Written=10344
+2026-06-30 02:35:59 | INFO     | __main__ | Batch 60 | Read=15360 | Written=10507
+2026-06-30 02:35:59 | INFO     | __main__ | Batch 60 | Read=15360 | Written=10507
+2026-06-30 02:35:59 | INFO     | __main__ | Batch 61 | Read=15616 | Written=10649
+2026-06-30 02:35:59 | INFO     | __main__ | Batch 61 | Read=15616 | Written=10649
+2026-06-30 02:36:00 | INFO     | __main__ | Batch 62 | Read=15872 | Written=10826
+2026-06-30 02:36:00 | INFO     | __main__ | Batch 62 | Read=15872 | Written=10826
+2026-06-30 02:36:02 | INFO     | __main__ | Batch 63 | Read=16128 | Written=11019
+2026-06-30 02:36:02 | INFO     | __main__ | Batch 63 | Read=16128 | Written=11019
+2026-06-30 02:36:02 | INFO     | __main__ | Batch 64 | Read=16384 | Written=11174
+2026-06-30 02:36:02 | INFO     | __main__ | Batch 64 | Read=16384 | Written=11174
+2026-06-30 02:36:04 | INFO     | __main__ | Batch 65 | Read=16640 | Written=11361
+2026-06-30 02:36:04 | INFO     | __main__ | Batch 65 | Read=16640 | Written=11361
+2026-06-30 02:36:05 | INFO     | __main__ | Batch 66 | Read=16896 | Written=11569
+2026-06-30 02:36:05 | INFO     | __main__ | Batch 66 | Read=16896 | Written=11569
+2026-06-30 02:36:06 | INFO     | __main__ | Batch 67 | Read=17152 | Written=11747
+2026-06-30 02:36:06 | INFO     | __main__ | Batch 67 | Read=17152 | Written=11747
+2026-06-30 02:36:07 | INFO     | __main__ | Batch 68 | Read=17408 | Written=11975
+2026-06-30 02:36:07 | INFO     | __main__ | Batch 68 | Read=17408 | Written=11975
+2026-06-30 02:36:09 | INFO     | __main__ | Batch 69 | Read=17664 | Written=12186
+2026-06-30 02:36:09 | INFO     | __main__ | Batch 69 | Read=17664 | Written=12186
+2026-06-30 02:36:10 | INFO     | __main__ | Batch 70 | Read=17920 | Written=12376
+2026-06-30 02:36:10 | INFO     | __main__ | Batch 70 | Read=17920 | Written=12376
+2026-06-30 02:36:11 | INFO     | __main__ | Batch 71 | Read=18176 | Written=12522
+2026-06-30 02:36:11 | INFO     | __main__ | Batch 71 | Read=18176 | Written=12522
+2026-06-30 02:36:12 | INFO     | __main__ | Batch 72 | Read=18432 | Written=12699
+2026-06-30 02:36:12 | INFO     | __main__ | Batch 72 | Read=18432 | Written=12699
+2026-06-30 02:36:13 | INFO     | __main__ | Batch 73 | Read=18688 | Written=12888
+2026-06-30 02:36:13 | INFO     | __main__ | Batch 73 | Read=18688 | Written=12888
+2026-06-30 02:36:14 | INFO     | __main__ | Batch 74 | Read=18944 | Written=13063
+2026-06-30 02:36:14 | INFO     | __main__ | Batch 74 | Read=18944 | Written=13063
+2026-06-30 02:36:15 | INFO     | __main__ | Batch 75 | Read=19200 | Written=13247
+2026-06-30 02:36:15 | INFO     | __main__ | Batch 75 | Read=19200 | Written=13247
+2026-06-30 02:36:17 | INFO     | __main__ | Batch 76 | Read=19456 | Written=13416
+2026-06-30 02:36:17 | INFO     | __main__ | Batch 76 | Read=19456 | Written=13416
+2026-06-30 02:36:19 | INFO     | __main__ | Batch 77 | Read=19712 | Written=13566
+2026-06-30 02:36:19 | INFO     | __main__ | Batch 77 | Read=19712 | Written=13566
+2026-06-30 02:36:20 | INFO     | __main__ | Batch 78 | Read=19968 | Written=13759
+2026-06-30 02:36:20 | INFO     | __main__ | Batch 78 | Read=19968 | Written=13759
+2026-06-30 02:36:21 | INFO     | __main__ | Batch 79 | Read=20224 | Written=13907
+2026-06-30 02:36:21 | INFO     | __main__ | Batch 79 | Read=20224 | Written=13907
+2026-06-30 02:36:22 | INFO     | __main__ | Batch 80 | Read=20480 | Written=14095
+2026-06-30 02:36:22 | INFO     | __main__ | Batch 80 | Read=20480 | Written=14095
+2026-06-30 02:36:24 | INFO     | __main__ | Batch 81 | Read=20736 | Written=14298
+2026-06-30 02:36:24 | INFO     | __main__ | Batch 81 | Read=20736 | Written=14298
+2026-06-30 02:36:25 | INFO     | __main__ | Batch 82 | Read=20992 | Written=14493
+2026-06-30 02:36:25 | INFO     | __main__ | Batch 82 | Read=20992 | Written=14493
+2026-06-30 02:36:26 | INFO     | __main__ | Batch 83 | Read=21248 | Written=14672
+2026-06-30 02:36:26 | INFO     | __main__ | Batch 83 | Read=21248 | Written=14672
+2026-06-30 02:36:26 | INFO     | __main__ | Batch 84 | Read=21504 | Written=14869
+2026-06-30 02:36:26 | INFO     | __main__ | Batch 84 | Read=21504 | Written=14869
+2026-06-30 02:36:27 | INFO     | __main__ | Batch 85 | Read=21760 | Written=15050
+2026-06-30 02:36:27 | INFO     | __main__ | Batch 85 | Read=21760 | Written=15050
+2026-06-30 02:36:28 | INFO     | __main__ | Batch 86 | Read=22016 | Written=15198
+2026-06-30 02:36:28 | INFO     | __main__ | Batch 86 | Read=22016 | Written=15198
+2026-06-30 02:36:29 | INFO     | __main__ | Batch 87 | Read=22272 | Written=15361
+2026-06-30 02:36:29 | INFO     | __main__ | Batch 87 | Read=22272 | Written=15361
+2026-06-30 02:36:30 | INFO     | __main__ | Batch 88 | Read=22528 | Written=15576
+2026-06-30 02:36:30 | INFO     | __main__ | Batch 88 | Read=22528 | Written=15576
+2026-06-30 02:36:32 | INFO     | __main__ | Batch 89 | Read=22784 | Written=15751
+2026-06-30 02:36:32 | INFO     | __main__ | Batch 89 | Read=22784 | Written=15751
+2026-06-30 02:36:32 | INFO     | __main__ | Batch 90 | Read=23040 | Written=15949
+2026-06-30 02:36:32 | INFO     | __main__ | Batch 90 | Read=23040 | Written=15949
+2026-06-30 02:36:34 | INFO     | __main__ | Batch 91 | Read=23296 | Written=16138
+2026-06-30 02:36:34 | INFO     | __main__ | Batch 91 | Read=23296 | Written=16138
+2026-06-30 02:36:35 | INFO     | __main__ | Batch 92 | Read=23552 | Written=16353
+2026-06-30 02:36:35 | INFO     | __main__ | Batch 92 | Read=23552 | Written=16353
+2026-06-30 02:36:36 | INFO     | __main__ | Batch 93 | Read=23808 | Written=16508
+2026-06-30 02:36:36 | INFO     | __main__ | Batch 93 | Read=23808 | Written=16508
+2026-06-30 02:36:38 | INFO     | __main__ | Batch 94 | Read=24064 | Written=16696
+2026-06-30 02:36:38 | INFO     | __main__ | Batch 94 | Read=24064 | Written=16696
+2026-06-30 02:36:39 | INFO     | __main__ | Batch 95 | Read=24320 | Written=16892
+2026-06-30 02:36:39 | INFO     | __main__ | Batch 95 | Read=24320 | Written=16892
+2026-06-30 02:36:40 | INFO     | __main__ | Batch 96 | Read=24576 | Written=17098
+2026-06-30 02:36:40 | INFO     | __main__ | Batch 96 | Read=24576 | Written=17098
+2026-06-30 02:36:41 | INFO     | __main__ | Batch 97 | Read=24832 | Written=17292
+2026-06-30 02:36:41 | INFO     | __main__ | Batch 97 | Read=24832 | Written=17292
+2026-06-30 02:36:43 | INFO     | __main__ | Batch 98 | Read=25088 | Written=17502
+2026-06-30 02:36:43 | INFO     | __main__ | Batch 98 | Read=25088 | Written=17502
+2026-06-30 02:36:44 | INFO     | __main__ | Batch 99 | Read=25344 | Written=17713
+2026-06-30 02:36:44 | INFO     | __main__ | Batch 99 | Read=25344 | Written=17713
+2026-06-30 02:36:45 | INFO     | __main__ | Batch 100 | Read=25600 | Written=17900
+2026-06-30 02:36:45 | INFO     | __main__ | Batch 100 | Read=25600 | Written=17900
+2026-06-30 02:36:46 | INFO     | __main__ | Batch 101 | Read=25856 | Written=18088
+2026-06-30 02:36:46 | INFO     | __main__ | Batch 101 | Read=25856 | Written=18088
+2026-06-30 02:36:47 | INFO     | __main__ | Batch 102 | Read=26112 | Written=18287
+2026-06-30 02:36:47 | INFO     | __main__ | Batch 102 | Read=26112 | Written=18287
+2026-06-30 02:36:48 | INFO     | __main__ | Batch 103 | Read=26368 | Written=18499
+2026-06-30 02:36:48 | INFO     | __main__ | Batch 103 | Read=26368 | Written=18499
+2026-06-30 02:36:50 | INFO     | __main__ | Batch 104 | Read=26624 | Written=18676
+2026-06-30 02:36:50 | INFO     | __main__ | Batch 104 | Read=26624 | Written=18676
+2026-06-30 02:36:51 | INFO     | __main__ | Batch 105 | Read=26880 | Written=18861
+2026-06-30 02:36:51 | INFO     | __main__ | Batch 105 | Read=26880 | Written=18861
+2026-06-30 02:36:52 | INFO     | __main__ | Batch 106 | Read=27136 | Written=19059
+2026-06-30 02:36:52 | INFO     | __main__ | Batch 106 | Read=27136 | Written=19059
+2026-06-30 02:36:53 | INFO     | __main__ | Batch 107 | Read=27392 | Written=19237
+2026-06-30 02:36:53 | INFO     | __main__ | Batch 107 | Read=27392 | Written=19237
+2026-06-30 02:36:54 | INFO     | __main__ | Batch 108 | Read=27648 | Written=19447
+2026-06-30 02:36:54 | INFO     | __main__ | Batch 108 | Read=27648 | Written=19447
+2026-06-30 02:36:55 | INFO     | __main__ | Batch 109 | Read=27904 | Written=19615
+2026-06-30 02:36:55 | INFO     | __main__ | Batch 109 | Read=27904 | Written=19615
+2026-06-30 02:36:56 | INFO     | __main__ | Batch 110 | Read=28160 | Written=19785
+2026-06-30 02:36:56 | INFO     | __main__ | Batch 110 | Read=28160 | Written=19785
+2026-06-30 02:36:57 | INFO     | __main__ | Batch 111 | Read=28416 | Written=19982
+2026-06-30 02:36:57 | INFO     | __main__ | Batch 111 | Read=28416 | Written=19982
+2026-06-30 02:36:58 | INFO     | __main__ | Batch 112 | Read=28672 | Written=20172
+2026-06-30 02:36:58 | INFO     | __main__ | Batch 112 | Read=28672 | Written=20172
+2026-06-30 02:37:00 | INFO     | __main__ | Batch 113 | Read=28928 | Written=20377
+2026-06-30 02:37:00 | INFO     | __main__ | Batch 113 | Read=28928 | Written=20377
+2026-06-30 02:37:01 | INFO     | __main__ | Batch 114 | Read=29184 | Written=20546
+2026-06-30 02:37:01 | INFO     | __main__ | Batch 114 | Read=29184 | Written=20546
+2026-06-30 02:37:01 | INFO     | __main__ | Batch 115 | Read=29440 | Written=20645
+2026-06-30 02:37:01 | INFO     | __main__ | Batch 115 | Read=29440 | Written=20645
+2026-06-30 02:37:02 | INFO     | __main__ | Batch 116 | Read=29696 | Written=20843
+2026-06-30 02:37:02 | INFO     | __main__ | Batch 116 | Read=29696 | Written=20843
+2026-06-30 02:37:03 | INFO     | __main__ | Batch 117 | Read=29952 | Written=21049
+2026-06-30 02:37:03 | INFO     | __main__ | Batch 117 | Read=29952 | Written=21049
+2026-06-30 02:37:04 | INFO     | __main__ | Batch 118 | Read=30208 | Written=21247
+2026-06-30 02:37:04 | INFO     | __main__ | Batch 118 | Read=30208 | Written=21247
+2026-06-30 02:37:05 | INFO     | __main__ | Batch 119 | Read=30464 | Written=21464
+2026-06-30 02:37:05 | INFO     | __main__ | Batch 119 | Read=30464 | Written=21464
+2026-06-30 02:37:07 | INFO     | __main__ | Batch 120 | Read=30720 | Written=21630
+2026-06-30 02:37:07 | INFO     | __main__ | Batch 120 | Read=30720 | Written=21630
+2026-06-30 02:37:07 | INFO     | __main__ | Batch 121 | Read=30976 | Written=21827
+2026-06-30 02:37:07 | INFO     | __main__ | Batch 121 | Read=30976 | Written=21827
+2026-06-30 02:37:09 | INFO     | __main__ | Batch 122 | Read=31232 | Written=22014
+2026-06-30 02:37:09 | INFO     | __main__ | Batch 122 | Read=31232 | Written=22014
+2026-06-30 02:37:10 | INFO     | __main__ | Batch 123 | Read=31488 | Written=22207
+2026-06-30 02:37:10 | INFO     | __main__ | Batch 123 | Read=31488 | Written=22207
+2026-06-30 02:37:11 | INFO     | __main__ | Batch 124 | Read=31744 | Written=22393
+2026-06-30 02:37:11 | INFO     | __main__ | Batch 124 | Read=31744 | Written=22393
+2026-06-30 02:37:13 | INFO     | __main__ | Batch 125 | Read=32000 | Written=22611
+2026-06-30 02:37:13 | INFO     | __main__ | Batch 125 | Read=32000 | Written=22611
+2026-06-30 02:37:13 | INFO     | __main__ | Batch 126 | Read=32256 | Written=22800
+2026-06-30 02:37:13 | INFO     | __main__ | Batch 126 | Read=32256 | Written=22800
+2026-06-30 02:37:15 | INFO     | __main__ | Batch 127 | Read=32512 | Written=22987
+2026-06-30 02:37:15 | INFO     | __main__ | Batch 127 | Read=32512 | Written=22987
+2026-06-30 02:37:17 | INFO     | __main__ | Batch 128 | Read=32768 | Written=23181
+2026-06-30 02:37:17 | INFO     | __main__ | Batch 128 | Read=32768 | Written=23181
+2026-06-30 02:37:18 | INFO     | __main__ | Batch 129 | Read=33024 | Written=23356
+2026-06-30 02:37:18 | INFO     | __main__ | Batch 129 | Read=33024 | Written=23356
+2026-06-30 02:37:20 | INFO     | __main__ | Batch 130 | Read=33280 | Written=23575
+2026-06-30 02:37:20 | INFO     | __main__ | Batch 130 | Read=33280 | Written=23575
+2026-06-30 02:37:21 | INFO     | __main__ | Batch 131 | Read=33536 | Written=23767
+2026-06-30 02:37:21 | INFO     | __main__ | Batch 131 | Read=33536 | Written=23767
+2026-06-30 02:37:22 | INFO     | __main__ | Batch 132 | Read=33792 | Written=23949
+2026-06-30 02:37:22 | INFO     | __main__ | Batch 132 | Read=33792 | Written=23949
+2026-06-30 02:37:23 | INFO     | __main__ | Batch 133 | Read=34048 | Written=24149
+2026-06-30 02:37:23 | INFO     | __main__ | Batch 133 | Read=34048 | Written=24149
+2026-06-30 02:37:24 | INFO     | __main__ | Batch 134 | Read=34304 | Written=24296
+2026-06-30 02:37:24 | INFO     | __main__ | Batch 134 | Read=34304 | Written=24296
+2026-06-30 02:37:25 | INFO     | __main__ | Batch 135 | Read=34560 | Written=24490
+2026-06-30 02:37:25 | INFO     | __main__ | Batch 135 | Read=34560 | Written=24490
+2026-06-30 02:37:26 | INFO     | __main__ | Batch 136 | Read=34816 | Written=24696
+2026-06-30 02:37:26 | INFO     | __main__ | Batch 136 | Read=34816 | Written=24696
+2026-06-30 02:37:28 | INFO     | __main__ | Batch 137 | Read=35072 | Written=24909
+2026-06-30 02:37:28 | INFO     | __main__ | Batch 137 | Read=35072 | Written=24909
+2026-06-30 02:37:29 | INFO     | __main__ | Batch 138 | Read=35328 | Written=25092
+2026-06-30 02:37:29 | INFO     | __main__ | Batch 138 | Read=35328 | Written=25092
+2026-06-30 02:37:30 | INFO     | __main__ | Batch 139 | Read=35584 | Written=25296
+2026-06-30 02:37:30 | INFO     | __main__ | Batch 139 | Read=35584 | Written=25296
+2026-06-30 02:37:32 | INFO     | __main__ | Batch 140 | Read=35840 | Written=25515
+2026-06-30 02:37:32 | INFO     | __main__ | Batch 140 | Read=35840 | Written=25515
+2026-06-30 02:37:33 | INFO     | __main__ | Batch 141 | Read=36096 | Written=25700
+2026-06-30 02:37:33 | INFO     | __main__ | Batch 141 | Read=36096 | Written=25700
+2026-06-30 02:37:34 | INFO     | __main__ | Batch 142 | Read=36352 | Written=25911
+2026-06-30 02:37:34 | INFO     | __main__ | Batch 142 | Read=36352 | Written=25911
+2026-06-30 02:37:36 | INFO     | __main__ | Batch 143 | Read=36608 | Written=26106
+2026-06-30 02:37:36 | INFO     | __main__ | Batch 143 | Read=36608 | Written=26106
+2026-06-30 02:37:38 | INFO     | __main__ | Batch 144 | Read=36864 | Written=26298
+2026-06-30 02:37:38 | INFO     | __main__ | Batch 144 | Read=36864 | Written=26298
+2026-06-30 02:37:39 | INFO     | __main__ | Batch 145 | Read=37120 | Written=26520
+2026-06-30 02:37:39 | INFO     | __main__ | Batch 145 | Read=37120 | Written=26520
+2026-06-30 02:37:40 | INFO     | __main__ | Batch 146 | Read=37376 | Written=26735
+2026-06-30 02:37:40 | INFO     | __main__ | Batch 146 | Read=37376 | Written=26735
+2026-06-30 02:37:41 | INFO     | __main__ | Batch 147 | Read=37632 | Written=26916
+2026-06-30 02:37:41 | INFO     | __main__ | Batch 147 | Read=37632 | Written=26916
+2026-06-30 02:37:43 | INFO     | __main__ | Batch 148 | Read=37888 | Written=27123
+2026-06-30 02:37:43 | INFO     | __main__ | Batch 148 | Read=37888 | Written=27123
+2026-06-30 02:37:44 | INFO     | __main__ | Batch 149 | Read=38144 | Written=27314
+2026-06-30 02:37:44 | INFO     | __main__ | Batch 149 | Read=38144 | Written=27314
+2026-06-30 02:37:45 | INFO     | __main__ | Batch 150 | Read=38400 | Written=27533
+2026-06-30 02:37:45 | INFO     | __main__ | Batch 150 | Read=38400 | Written=27533
+2026-06-30 02:37:46 | INFO     | __main__ | Batch 151 | Read=38656 | Written=27712
+2026-06-30 02:37:46 | INFO     | __main__ | Batch 151 | Read=38656 | Written=27712
+2026-06-30 02:37:48 | INFO     | __main__ | Batch 152 | Read=38912 | Written=27931
+2026-06-30 02:37:48 | INFO     | __main__ | Batch 152 | Read=38912 | Written=27931
+2026-06-30 02:37:49 | INFO     | __main__ | Batch 153 | Read=39168 | Written=28115
+2026-06-30 02:37:49 | INFO     | __main__ | Batch 153 | Read=39168 | Written=28115
+2026-06-30 02:37:50 | INFO     | __main__ | Batch 154 | Read=39424 | Written=28329
+2026-06-30 02:37:50 | INFO     | __main__ | Batch 154 | Read=39424 | Written=28329
+2026-06-30 02:37:50 | INFO     | __main__ | Batch 155 | Read=39680 | Written=28513
+2026-06-30 02:37:50 | INFO     | __main__ | Batch 155 | Read=39680 | Written=28513
+2026-06-30 02:37:51 | INFO     | __main__ | Batch 156 | Read=39936 | Written=28718
+2026-06-30 02:37:51 | INFO     | __main__ | Batch 156 | Read=39936 | Written=28718
+2026-06-30 02:37:53 | INFO     | __main__ | Batch 157 | Read=40192 | Written=28910
+2026-06-30 02:37:53 | INFO     | __main__ | Batch 157 | Read=40192 | Written=28910
+2026-06-30 02:37:54 | INFO     | __main__ | Batch 158 | Read=40448 | Written=29111
+2026-06-30 02:37:54 | INFO     | __main__ | Batch 158 | Read=40448 | Written=29111
+2026-06-30 02:37:55 | INFO     | __main__ | Batch 159 | Read=40704 | Written=29324
+2026-06-30 02:37:55 | INFO     | __main__ | Batch 159 | Read=40704 | Written=29324
+2026-06-30 02:37:56 | INFO     | __main__ | Batch 160 | Read=40960 | Written=29510
+2026-06-30 02:37:56 | INFO     | __main__ | Batch 160 | Read=40960 | Written=29510
+2026-06-30 02:37:58 | INFO     | __main__ | Batch 161 | Read=41216 | Written=29729
+2026-06-30 02:37:58 | INFO     | __main__ | Batch 161 | Read=41216 | Written=29729
+2026-06-30 02:37:59 | INFO     | __main__ | Batch 162 | Read=41472 | Written=29911
+2026-06-30 02:37:59 | INFO     | __main__ | Batch 162 | Read=41472 | Written=29911
+2026-06-30 02:38:00 | INFO     | __main__ | Batch 163 | Read=41728 | Written=30102
+2026-06-30 02:38:00 | INFO     | __main__ | Batch 163 | Read=41728 | Written=30102
+2026-06-30 02:38:02 | INFO     | __main__ | Batch 164 | Read=41984 | Written=30311
+2026-06-30 02:38:02 | INFO     | __main__ | Batch 164 | Read=41984 | Written=30311
+2026-06-30 02:38:03 | INFO     | __main__ | Batch 165 | Read=42240 | Written=30515
+2026-06-30 02:38:03 | INFO     | __main__ | Batch 165 | Read=42240 | Written=30515
+2026-06-30 02:38:04 | INFO     | __main__ | Batch 166 | Read=42496 | Written=30691
+2026-06-30 02:38:04 | INFO     | __main__ | Batch 166 | Read=42496 | Written=30691
+2026-06-30 02:38:05 | INFO     | __main__ | Batch 167 | Read=42752 | Written=30887
+2026-06-30 02:38:05 | INFO     | __main__ | Batch 167 | Read=42752 | Written=30887
+2026-06-30 02:38:07 | INFO     | __main__ | Batch 168 | Read=43008 | Written=31094
+2026-06-30 02:38:07 | INFO     | __main__ | Batch 168 | Read=43008 | Written=31094
+2026-06-30 02:38:08 | INFO     | __main__ | Batch 169 | Read=43264 | Written=31294
+2026-06-30 02:38:08 | INFO     | __main__ | Batch 169 | Read=43264 | Written=31294
+2026-06-30 02:38:10 | INFO     | __main__ | Batch 170 | Read=43520 | Written=31464
+2026-06-30 02:38:10 | INFO     | __main__ | Batch 170 | Read=43520 | Written=31464
+2026-06-30 02:38:11 | INFO     | __main__ | Batch 171 | Read=43776 | Written=31670
+2026-06-30 02:38:11 | INFO     | __main__ | Batch 171 | Read=43776 | Written=31670
+2026-06-30 02:38:12 | INFO     | __main__ | Batch 172 | Read=44032 | Written=31872
+2026-06-30 02:38:12 | INFO     | __main__ | Batch 172 | Read=44032 | Written=31872
+2026-06-30 02:38:13 | INFO     | __main__ | Batch 173 | Read=44288 | Written=32068
+2026-06-30 02:38:13 | INFO     | __main__ | Batch 173 | Read=44288 | Written=32068
+2026-06-30 02:38:14 | INFO     | __main__ | Batch 174 | Read=44544 | Written=32243
+2026-06-30 02:38:14 | INFO     | __main__ | Batch 174 | Read=44544 | Written=32243
+2026-06-30 02:38:15 | INFO     | __main__ | Batch 175 | Read=44800 | Written=32444
+2026-06-30 02:38:15 | INFO     | __main__ | Batch 175 | Read=44800 | Written=32444
+2026-06-30 02:38:16 | INFO     | __main__ | Batch 176 | Read=45056 | Written=32663
+2026-06-30 02:38:16 | INFO     | __main__ | Batch 176 | Read=45056 | Written=32663
+2026-06-30 02:38:18 | INFO     | __main__ | Batch 177 | Read=45312 | Written=32871
+2026-06-30 02:38:18 | INFO     | __main__ | Batch 177 | Read=45312 | Written=32871
+2026-06-30 02:38:19 | INFO     | __main__ | Batch 178 | Read=45568 | Written=33057
+2026-06-30 02:38:19 | INFO     | __main__ | Batch 178 | Read=45568 | Written=33057
+2026-06-30 02:38:20 | INFO     | __main__ | Batch 179 | Read=45824 | Written=33282
+2026-06-30 02:38:20 | INFO     | __main__ | Batch 179 | Read=45824 | Written=33282
+2026-06-30 02:38:22 | INFO     | __main__ | Batch 180 | Read=46080 | Written=33495
+2026-06-30 02:38:22 | INFO     | __main__ | Batch 180 | Read=46080 | Written=33495
+2026-06-30 02:38:23 | INFO     | __main__ | Batch 181 | Read=46336 | Written=33686
+2026-06-30 02:38:23 | INFO     | __main__ | Batch 181 | Read=46336 | Written=33686
+2026-06-30 02:38:25 | INFO     | __main__ | Batch 182 | Read=46592 | Written=33874
+2026-06-30 02:38:25 | INFO     | __main__ | Batch 182 | Read=46592 | Written=33874
+2026-06-30 02:38:26 | INFO     | __main__ | Batch 183 | Read=46848 | Written=34088
+2026-06-30 02:38:26 | INFO     | __main__ | Batch 183 | Read=46848 | Written=34088
+2026-06-30 02:38:28 | INFO     | __main__ | Batch 184 | Read=47104 | Written=34320
+2026-06-30 02:38:28 | INFO     | __main__ | Batch 184 | Read=47104 | Written=34320
+2026-06-30 02:38:30 | INFO     | __main__ | Batch 185 | Read=47360 | Written=34537
+2026-06-30 02:38:30 | INFO     | __main__ | Batch 185 | Read=47360 | Written=34537
+2026-06-30 02:38:31 | INFO     | __main__ | Batch 186 | Read=47616 | Written=34722
+2026-06-30 02:38:31 | INFO     | __main__ | Batch 186 | Read=47616 | Written=34722
+2026-06-30 02:38:32 | INFO     | __main__ | Batch 187 | Read=47872 | Written=34910
+2026-06-30 02:38:32 | INFO     | __main__ | Batch 187 | Read=47872 | Written=34910
+2026-06-30 02:38:34 | INFO     | __main__ | Batch 188 | Read=48128 | Written=35130
+2026-06-30 02:38:34 | INFO     | __main__ | Batch 188 | Read=48128 | Written=35130
+2026-06-30 02:38:35 | INFO     | __main__ | Batch 189 | Read=48384 | Written=35338
+2026-06-30 02:38:35 | INFO     | __main__ | Batch 189 | Read=48384 | Written=35338
+2026-06-30 02:38:37 | INFO     | __main__ | Batch 190 | Read=48640 | Written=35537
+2026-06-30 02:38:37 | INFO     | __main__ | Batch 190 | Read=48640 | Written=35537
+2026-06-30 02:38:38 | INFO     | __main__ | Batch 191 | Read=48896 | Written=35729
+2026-06-30 02:38:38 | INFO     | __main__ | Batch 191 | Read=48896 | Written=35729
+2026-06-30 02:38:40 | INFO     | __main__ | Batch 192 | Read=49152 | Written=35920
+2026-06-30 02:38:40 | INFO     | __main__ | Batch 192 | Read=49152 | Written=35920
+2026-06-30 02:38:41 | INFO     | __main__ | Batch 193 | Read=49408 | Written=36132
+2026-06-30 02:38:41 | INFO     | __main__ | Batch 193 | Read=49408 | Written=36132
+2026-06-30 02:38:43 | INFO     | __main__ | Batch 194 | Read=49664 | Written=36346
+2026-06-30 02:38:43 | INFO     | __main__ | Batch 194 | Read=49664 | Written=36346
+2026-06-30 02:38:45 | INFO     | __main__ | Batch 195 | Read=49920 | Written=36542
+2026-06-30 02:38:45 | INFO     | __main__ | Batch 195 | Read=49920 | Written=36542
+2026-06-30 02:38:46 | INFO     | __main__ | Batch 196 | Read=50176 | Written=36751
+2026-06-30 02:38:46 | INFO     | __main__ | Batch 196 | Read=50176 | Written=36751
+2026-06-30 02:38:48 | INFO     | __main__ | Batch 197 | Read=50432 | Written=36972
+2026-06-30 02:38:48 | INFO     | __main__ | Batch 197 | Read=50432 | Written=36972
+2026-06-30 02:38:49 | INFO     | __main__ | Batch 198 | Read=50688 | Written=37175
+2026-06-30 02:38:49 | INFO     | __main__ | Batch 198 | Read=50688 | Written=37175
+2026-06-30 02:38:51 | INFO     | __main__ | Batch 199 | Read=50944 | Written=37382
+2026-06-30 02:38:51 | INFO     | __main__ | Batch 199 | Read=50944 | Written=37382
+2026-06-30 02:38:52 | INFO     | __main__ | Batch 200 | Read=51200 | Written=37576
+2026-06-30 02:38:52 | INFO     | __main__ | Batch 200 | Read=51200 | Written=37576
+2026-06-30 02:38:53 | INFO     | __main__ | Batch 201 | Read=51456 | Written=37798
+2026-06-30 02:38:53 | INFO     | __main__ | Batch 201 | Read=51456 | Written=37798
+2026-06-30 02:38:54 | INFO     | __main__ | Batch 202 | Read=51712 | Written=38016
+2026-06-30 02:38:54 | INFO     | __main__ | Batch 202 | Read=51712 | Written=38016
+2026-06-30 02:38:55 | INFO     | __main__ | Batch 203 | Read=51968 | Written=38198
+2026-06-30 02:38:55 | INFO     | __main__ | Batch 203 | Read=51968 | Written=38198
+2026-06-30 02:38:56 | INFO     | __main__ | Batch 204 | Read=52224 | Written=38418
+2026-06-30 02:38:56 | INFO     | __main__ | Batch 204 | Read=52224 | Written=38418
+2026-06-30 02:38:58 | INFO     | __main__ | Batch 205 | Read=52480 | Written=38615
+2026-06-30 02:38:58 | INFO     | __main__ | Batch 205 | Read=52480 | Written=38615
+2026-06-30 02:38:59 | INFO     | __main__ | Batch 206 | Read=52736 | Written=38807
+2026-06-30 02:38:59 | INFO     | __main__ | Batch 206 | Read=52736 | Written=38807
+2026-06-30 02:39:01 | INFO     | __main__ | Batch 207 | Read=52992 | Written=39009
+2026-06-30 02:39:01 | INFO     | __main__ | Batch 207 | Read=52992 | Written=39009
+2026-06-30 02:39:02 | INFO     | __main__ | Batch 208 | Read=53248 | Written=39234
+2026-06-30 02:39:02 | INFO     | __main__ | Batch 208 | Read=53248 | Written=39234
+2026-06-30 02:39:03 | INFO     | __main__ | Batch 209 | Read=53504 | Written=39420
+2026-06-30 02:39:03 | INFO     | __main__ | Batch 209 | Read=53504 | Written=39420
+2026-06-30 02:39:05 | INFO     | __main__ | Batch 210 | Read=53760 | Written=39635
+2026-06-30 02:39:05 | INFO     | __main__ | Batch 210 | Read=53760 | Written=39635
+2026-06-30 02:39:07 | INFO     | __main__ | Batch 211 | Read=54016 | Written=39846
+2026-06-30 02:39:07 | INFO     | __main__ | Batch 211 | Read=54016 | Written=39846
+2026-06-30 02:39:08 | INFO     | __main__ | Batch 212 | Read=54272 | Written=40058
+2026-06-30 02:39:08 | INFO     | __main__ | Batch 212 | Read=54272 | Written=40058
+2026-06-30 02:39:09 | INFO     | __main__ | Batch 213 | Read=54528 | Written=40284
+2026-06-30 02:39:09 | INFO     | __main__ | Batch 213 | Read=54528 | Written=40284
+2026-06-30 02:39:11 | INFO     | __main__ | Batch 214 | Read=54784 | Written=40496
+2026-06-30 02:39:11 | INFO     | __main__ | Batch 214 | Read=54784 | Written=40496
+2026-06-30 02:39:12 | INFO     | __main__ | Batch 215 | Read=55040 | Written=40713
+2026-06-30 02:39:12 | INFO     | __main__ | Batch 215 | Read=55040 | Written=40713
+2026-06-30 02:39:13 | INFO     | __main__ | Batch 216 | Read=55296 | Written=40936
+2026-06-30 02:39:13 | INFO     | __main__ | Batch 216 | Read=55296 | Written=40936
+2026-06-30 02:39:14 | INFO     | __main__ | Batch 217 | Read=55552 | Written=41155
+2026-06-30 02:39:14 | INFO     | __main__ | Batch 217 | Read=55552 | Written=41155
+2026-06-30 02:39:14 | INFO     | __main__ | Batch 218 | Read=55808 | Written=41380
+2026-06-30 02:39:14 | INFO     | __main__ | Batch 218 | Read=55808 | Written=41380
+2026-06-30 02:39:15 | INFO     | __main__ | Batch 219 | Read=56064 | Written=41602
+2026-06-30 02:39:15 | INFO     | __main__ | Batch 219 | Read=56064 | Written=41602
+2026-06-30 02:39:16 | INFO     | __main__ | Batch 220 | Read=56320 | Written=41829
+2026-06-30 02:39:16 | INFO     | __main__ | Batch 220 | Read=56320 | Written=41829
+2026-06-30 02:39:17 | INFO     | __main__ | Batch 221 | Read=56576 | Written=42047
+2026-06-30 02:39:17 | INFO     | __main__ | Batch 221 | Read=56576 | Written=42047
+2026-06-30 02:39:19 | INFO     | __main__ | Batch 222 | Read=56832 | Written=42262
+2026-06-30 02:39:19 | INFO     | __main__ | Batch 222 | Read=56832 | Written=42262
+2026-06-30 02:39:20 | INFO     | __main__ | Batch 223 | Read=57088 | Written=42474
+2026-06-30 02:39:20 | INFO     | __main__ | Batch 223 | Read=57088 | Written=42474
+2026-06-30 02:39:22 | INFO     | __main__ | Batch 224 | Read=57344 | Written=42693
+2026-06-30 02:39:22 | INFO     | __main__ | Batch 224 | Read=57344 | Written=42693
+2026-06-30 02:39:23 | INFO     | __main__ | Batch 225 | Read=57600 | Written=42904
+2026-06-30 02:39:23 | INFO     | __main__ | Batch 225 | Read=57600 | Written=42904
+2026-06-30 02:39:25 | INFO     | __main__ | Batch 226 | Read=57856 | Written=43121
+2026-06-30 02:39:25 | INFO     | __main__ | Batch 226 | Read=57856 | Written=43121
+2026-06-30 02:39:27 | INFO     | __main__ | Batch 227 | Read=58112 | Written=43322
+2026-06-30 02:39:27 | INFO     | __main__ | Batch 227 | Read=58112 | Written=43322
+2026-06-30 02:39:29 | INFO     | __main__ | Batch 228 | Read=58368 | Written=43549
+2026-06-30 02:39:29 | INFO     | __main__ | Batch 228 | Read=58368 | Written=43549
+2026-06-30 02:39:31 | INFO     | __main__ | Batch 229 | Read=58624 | Written=43756
+2026-06-30 02:39:31 | INFO     | __main__ | Batch 229 | Read=58624 | Written=43756
+2026-06-30 02:39:33 | INFO     | __main__ | Batch 230 | Read=58880 | Written=43964
+2026-06-30 02:39:33 | INFO     | __main__ | Batch 230 | Read=58880 | Written=43964
+2026-06-30 02:39:34 | INFO     | __main__ | Batch 231 | Read=59136 | Written=44115
+2026-06-30 02:39:34 | INFO     | __main__ | Batch 231 | Read=59136 | Written=44115
+2026-06-30 02:39:35 | INFO     | __main__ | Batch 232 | Read=59392 | Written=44341
+2026-06-30 02:39:35 | INFO     | __main__ | Batch 232 | Read=59392 | Written=44341
+2026-06-30 02:39:37 | INFO     | __main__ | Batch 233 | Read=59648 | Written=44552
+2026-06-30 02:39:37 | INFO     | __main__ | Batch 233 | Read=59648 | Written=44552
+2026-06-30 02:39:38 | INFO     | __main__ | Batch 234 | Read=59904 | Written=44778
+2026-06-30 02:39:38 | INFO     | __main__ | Batch 234 | Read=59904 | Written=44778
+2026-06-30 02:39:40 | INFO     | __main__ | Batch 235 | Read=60160 | Written=44999
+2026-06-30 02:39:40 | INFO     | __main__ | Batch 235 | Read=60160 | Written=44999
+2026-06-30 02:39:41 | INFO     | __main__ | Batch 236 | Read=60416 | Written=45207
+2026-06-30 02:39:41 | INFO     | __main__ | Batch 236 | Read=60416 | Written=45207
+2026-06-30 02:39:42 | INFO     | __main__ | Batch 237 | Read=60672 | Written=45426
+2026-06-30 02:39:42 | INFO     | __main__ | Batch 237 | Read=60672 | Written=45426
+2026-06-30 02:39:44 | INFO     | __main__ | Batch 238 | Read=60928 | Written=45654
+2026-06-30 02:39:44 | INFO     | __main__ | Batch 238 | Read=60928 | Written=45654
+2026-06-30 02:39:46 | INFO     | __main__ | Batch 239 | Read=61184 | Written=45867
+2026-06-30 02:39:46 | INFO     | __main__ | Batch 239 | Read=61184 | Written=45867
+2026-06-30 02:39:47 | INFO     | __main__ | Batch 240 | Read=61440 | Written=46065
+2026-06-30 02:39:47 | INFO     | __main__ | Batch 240 | Read=61440 | Written=46065
+2026-06-30 02:39:49 | INFO     | __main__ | Batch 241 | Read=61696 | Written=46279
+2026-06-30 02:39:49 | INFO     | __main__ | Batch 241 | Read=61696 | Written=46279
+2026-06-30 02:39:50 | INFO     | __main__ | Batch 242 | Read=61952 | Written=46494
+2026-06-30 02:39:50 | INFO     | __main__ | Batch 242 | Read=61952 | Written=46494
+2026-06-30 02:39:51 | INFO     | __main__ | Batch 243 | Read=62208 | Written=46723
+2026-06-30 02:39:51 | INFO     | __main__ | Batch 243 | Read=62208 | Written=46723
+2026-06-30 02:39:52 | INFO     | __main__ | Batch 244 | Read=62464 | Written=46946
+2026-06-30 02:39:52 | INFO     | __main__ | Batch 244 | Read=62464 | Written=46946
+2026-06-30 02:39:54 | INFO     | __main__ | Batch 245 | Read=62720 | Written=47172
+2026-06-30 02:39:54 | INFO     | __main__ | Batch 245 | Read=62720 | Written=47172
+2026-06-30 02:39:56 | INFO     | __main__ | Batch 246 | Read=62976 | Written=47377
+2026-06-30 02:39:56 | INFO     | __main__ | Batch 246 | Read=62976 | Written=47377
+2026-06-30 02:39:57 | INFO     | __main__ | Batch 247 | Read=63232 | Written=47590
+2026-06-30 02:39:57 | INFO     | __main__ | Batch 247 | Read=63232 | Written=47590
+2026-06-30 02:39:59 | INFO     | __main__ | Batch 248 | Read=63488 | Written=47804
+2026-06-30 02:39:59 | INFO     | __main__ | Batch 248 | Read=63488 | Written=47804
+2026-06-30 02:40:00 | INFO     | __main__ | Batch 249 | Read=63744 | Written=48025
+2026-06-30 02:40:00 | INFO     | __main__ | Batch 249 | Read=63744 | Written=48025
+2026-06-30 02:40:01 | INFO     | __main__ | Batch 250 | Read=64000 | Written=48239
+2026-06-30 02:40:01 | INFO     | __main__ | Batch 250 | Read=64000 | Written=48239
+2026-06-30 02:40:03 | INFO     | __main__ | Batch 251 | Read=64256 | Written=48432
+2026-06-30 02:40:03 | INFO     | __main__ | Batch 251 | Read=64256 | Written=48432
+2026-06-30 02:40:04 | INFO     | __main__ | Batch 252 | Read=64512 | Written=48648
+2026-06-30 02:40:04 | INFO     | __main__ | Batch 252 | Read=64512 | Written=48648
+2026-06-30 02:40:06 | INFO     | __main__ | Batch 253 | Read=64768 | Written=48880
+2026-06-30 02:40:06 | INFO     | __main__ | Batch 253 | Read=64768 | Written=48880
+2026-06-30 02:40:07 | INFO     | __main__ | Batch 254 | Read=65024 | Written=49080
+2026-06-30 02:40:07 | INFO     | __main__ | Batch 254 | Read=65024 | Written=49080
+2026-06-30 02:40:09 | INFO     | __main__ | Batch 255 | Read=65280 | Written=49293
+2026-06-30 02:40:09 | INFO     | __main__ | Batch 255 | Read=65280 | Written=49293
+2026-06-30 02:40:10 | INFO     | __main__ | Batch 256 | Read=65536 | Written=49497
+2026-06-30 02:40:10 | INFO     | __main__ | Batch 256 | Read=65536 | Written=49497
+2026-06-30 02:40:12 | INFO     | __main__ | Batch 257 | Read=65792 | Written=49707
+2026-06-30 02:40:12 | INFO     | __main__ | Batch 257 | Read=65792 | Written=49707
+2026-06-30 02:40:13 | INFO     | __main__ | Batch 258 | Read=66048 | Written=49916
+2026-06-30 02:40:13 | INFO     | __main__ | Batch 258 | Read=66048 | Written=49916
+2026-06-30 02:40:14 | INFO     | __main__ | Batch 259 | Read=66304 | Written=50131
+2026-06-30 02:40:14 | INFO     | __main__ | Batch 259 | Read=66304 | Written=50131
+2026-06-30 02:40:15 | INFO     | __main__ | Batch 260 | Read=66560 | Written=50336
+2026-06-30 02:40:15 | INFO     | __main__ | Batch 260 | Read=66560 | Written=50336
+2026-06-30 02:40:16 | INFO     | __main__ | Batch 261 | Read=66816 | Written=50544
+2026-06-30 02:40:16 | INFO     | __main__ | Batch 261 | Read=66816 | Written=50544
+2026-06-30 02:40:17 | INFO     | __main__ | Batch 262 | Read=67072 | Written=50750
+2026-06-30 02:40:17 | INFO     | __main__ | Batch 262 | Read=67072 | Written=50750
+2026-06-30 02:40:18 | INFO     | __main__ | Batch 263 | Read=67328 | Written=50964
+2026-06-30 02:40:18 | INFO     | __main__ | Batch 263 | Read=67328 | Written=50964
+2026-06-30 02:40:19 | INFO     | __main__ | Batch 264 | Read=67584 | Written=51166
+2026-06-30 02:40:19 | INFO     | __main__ | Batch 264 | Read=67584 | Written=51166
+2026-06-30 02:40:20 | INFO     | __main__ | Batch 265 | Read=67840 | Written=51389
+2026-06-30 02:40:20 | INFO     | __main__ | Batch 265 | Read=67840 | Written=51389
+2026-06-30 02:40:21 | INFO     | __main__ | Batch 266 | Read=68096 | Written=51610
+2026-06-30 02:40:21 | INFO     | __main__ | Batch 266 | Read=68096 | Written=51610
+2026-06-30 02:40:23 | INFO     | __main__ | Batch 267 | Read=68352 | Written=51823
+2026-06-30 02:40:23 | INFO     | __main__ | Batch 267 | Read=68352 | Written=51823
+2026-06-30 02:40:24 | INFO     | __main__ | Batch 268 | Read=68608 | Written=52061
+2026-06-30 02:40:24 | INFO     | __main__ | Batch 268 | Read=68608 | Written=52061
+2026-06-30 02:40:26 | INFO     | __main__ | Batch 269 | Read=68864 | Written=52277
+2026-06-30 02:40:26 | INFO     | __main__ | Batch 269 | Read=68864 | Written=52277
+2026-06-30 02:40:27 | INFO     | __main__ | Batch 270 | Read=69120 | Written=52499
+2026-06-30 02:40:27 | INFO     | __main__ | Batch 270 | Read=69120 | Written=52499
+2026-06-30 02:40:28 | INFO     | __main__ | Batch 271 | Read=69376 | Written=52724
+2026-06-30 02:40:28 | INFO     | __main__ | Batch 271 | Read=69376 | Written=52724
+2026-06-30 02:40:29 | INFO     | __main__ | Batch 272 | Read=69632 | Written=52949
+2026-06-30 02:40:29 | INFO     | __main__ | Batch 272 | Read=69632 | Written=52949
+2026-06-30 02:40:31 | INFO     | __main__ | Batch 273 | Read=69888 | Written=53160
+2026-06-30 02:40:31 | INFO     | __main__ | Batch 273 | Read=69888 | Written=53160
+2026-06-30 02:40:32 | INFO     | __main__ | Batch 274 | Read=70144 | Written=53380
+2026-06-30 02:40:32 | INFO     | __main__ | Batch 274 | Read=70144 | Written=53380
+2026-06-30 02:40:33 | INFO     | __main__ | Batch 275 | Read=70400 | Written=53612
+2026-06-30 02:40:33 | INFO     | __main__ | Batch 275 | Read=70400 | Written=53612
+2026-06-30 02:40:34 | INFO     | __main__ | Batch 276 | Read=70656 | Written=53835
+2026-06-30 02:40:34 | INFO     | __main__ | Batch 276 | Read=70656 | Written=53835
+2026-06-30 02:40:36 | INFO     | __main__ | Batch 277 | Read=70912 | Written=54065
+2026-06-30 02:40:36 | INFO     | __main__ | Batch 277 | Read=70912 | Written=54065
+2026-06-30 02:40:37 | INFO     | __main__ | Batch 278 | Read=71168 | Written=54288
+2026-06-30 02:40:37 | INFO     | __main__ | Batch 278 | Read=71168 | Written=54288
+2026-06-30 02:40:39 | INFO     | __main__ | Batch 279 | Read=71424 | Written=54505
+2026-06-30 02:40:39 | INFO     | __main__ | Batch 279 | Read=71424 | Written=54505
+2026-06-30 02:40:40 | INFO     | __main__ | Batch 280 | Read=71680 | Written=54730
+2026-06-30 02:40:40 | INFO     | __main__ | Batch 280 | Read=71680 | Written=54730
+2026-06-30 02:40:42 | INFO     | __main__ | Batch 281 | Read=71936 | Written=54932
+2026-06-30 02:40:42 | INFO     | __main__ | Batch 281 | Read=71936 | Written=54932
+2026-06-30 02:40:43 | INFO     | __main__ | Batch 282 | Read=72192 | Written=55146
+2026-06-30 02:40:43 | INFO     | __main__ | Batch 282 | Read=72192 | Written=55146
+2026-06-30 02:40:44 | INFO     | __main__ | Batch 283 | Read=72448 | Written=55373
+2026-06-30 02:40:44 | INFO     | __main__ | Batch 283 | Read=72448 | Written=55373
+2026-06-30 02:40:45 | INFO     | __main__ | Batch 284 | Read=72704 | Written=55604
+2026-06-30 02:40:45 | INFO     | __main__ | Batch 284 | Read=72704 | Written=55604
+2026-06-30 02:40:46 | INFO     | __main__ | Batch 285 | Read=72960 | Written=55829
+2026-06-30 02:40:46 | INFO     | __main__ | Batch 285 | Read=72960 | Written=55829
+2026-06-30 02:40:47 | INFO     | __main__ | Batch 286 | Read=73216 | Written=56050
+2026-06-30 02:40:47 | INFO     | __main__ | Batch 286 | Read=73216 | Written=56050
+2026-06-30 02:40:49 | INFO     | __main__ | Batch 287 | Read=73472 | Written=56270
+2026-06-30 02:40:49 | INFO     | __main__ | Batch 287 | Read=73472 | Written=56270
+2026-06-30 02:40:50 | INFO     | __main__ | Batch 288 | Read=73728 | Written=56507
+2026-06-30 02:40:50 | INFO     | __main__ | Batch 288 | Read=73728 | Written=56507
+2026-06-30 02:40:51 | INFO     | __main__ | Batch 289 | Read=73984 | Written=56733
+2026-06-30 02:40:51 | INFO     | __main__ | Batch 289 | Read=73984 | Written=56733
+2026-06-30 02:40:53 | INFO     | __main__ | Batch 290 | Read=74240 | Written=56949
+2026-06-30 02:40:53 | INFO     | __main__ | Batch 290 | Read=74240 | Written=56949
+2026-06-30 02:40:54 | INFO     | __main__ | Batch 291 | Read=74496 | Written=57173
+2026-06-30 02:40:54 | INFO     | __main__ | Batch 291 | Read=74496 | Written=57173
+2026-06-30 02:40:55 | INFO     | __main__ | Batch 292 | Read=74752 | Written=57392
+2026-06-30 02:40:55 | INFO     | __main__ | Batch 292 | Read=74752 | Written=57392
+2026-06-30 02:40:56 | INFO     | __main__ | Batch 293 | Read=75008 | Written=57623
+2026-06-30 02:40:56 | INFO     | __main__ | Batch 293 | Read=75008 | Written=57623
+2026-06-30 02:40:58 | INFO     | __main__ | Batch 294 | Read=75264 | Written=57849
+2026-06-30 02:40:58 | INFO     | __main__ | Batch 294 | Read=75264 | Written=57849
+2026-06-30 02:40:59 | INFO     | __main__ | Batch 295 | Read=75520 | Written=58062
+2026-06-30 02:40:59 | INFO     | __main__ | Batch 295 | Read=75520 | Written=58062
+2026-06-30 02:41:00 | INFO     | __main__ | Batch 296 | Read=75776 | Written=58269
+2026-06-30 02:41:00 | INFO     | __main__ | Batch 296 | Read=75776 | Written=58269
+2026-06-30 02:41:01 | INFO     | __main__ | Batch 297 | Read=76032 | Written=58493
+2026-06-30 02:41:01 | INFO     | __main__ | Batch 297 | Read=76032 | Written=58493
+2026-06-30 02:41:02 | INFO     | __main__ | Batch 298 | Read=76288 | Written=58716
+2026-06-30 02:41:02 | INFO     | __main__ | Batch 298 | Read=76288 | Written=58716
+2026-06-30 02:41:04 | INFO     | __main__ | Batch 299 | Read=76544 | Written=58938
+2026-06-30 02:41:04 | INFO     | __main__ | Batch 299 | Read=76544 | Written=58938
+2026-06-30 02:41:05 | INFO     | __main__ | Batch 300 | Read=76800 | Written=59146
+2026-06-30 02:41:05 | INFO     | __main__ | Batch 300 | Read=76800 | Written=59146
+2026-06-30 02:41:06 | INFO     | __main__ | Batch 301 | Read=77056 | Written=59372
+2026-06-30 02:41:06 | INFO     | __main__ | Batch 301 | Read=77056 | Written=59372
+2026-06-30 02:41:07 | INFO     | __main__ | Batch 302 | Read=77312 | Written=59605
+2026-06-30 02:41:07 | INFO     | __main__ | Batch 302 | Read=77312 | Written=59605
+2026-06-30 02:41:08 | INFO     | __main__ | Batch 303 | Read=77568 | Written=59827
+2026-06-30 02:41:08 | INFO     | __main__ | Batch 303 | Read=77568 | Written=59827
+2026-06-30 02:41:10 | INFO     | __main__ | Batch 304 | Read=77824 | Written=60041
+2026-06-30 02:41:10 | INFO     | __main__ | Batch 304 | Read=77824 | Written=60041
+2026-06-30 02:41:11 | INFO     | __main__ | Batch 305 | Read=78080 | Written=60267
+2026-06-30 02:41:11 | INFO     | __main__ | Batch 305 | Read=78080 | Written=60267
+2026-06-30 02:41:12 | INFO     | __main__ | Batch 306 | Read=78336 | Written=60484
+2026-06-30 02:41:12 | INFO     | __main__ | Batch 306 | Read=78336 | Written=60484
+2026-06-30 02:41:13 | INFO     | __main__ | Batch 307 | Read=78592 | Written=60705
+2026-06-30 02:41:13 | INFO     | __main__ | Batch 307 | Read=78592 | Written=60705
+2026-06-30 02:41:14 | INFO     | __main__ | Batch 308 | Read=78848 | Written=60927
+2026-06-30 02:41:14 | INFO     | __main__ | Batch 308 | Read=78848 | Written=60927
+2026-06-30 02:41:16 | INFO     | __main__ | Batch 309 | Read=79104 | Written=61143
+2026-06-30 02:41:16 | INFO     | __main__ | Batch 309 | Read=79104 | Written=61143
+2026-06-30 02:41:17 | INFO     | __main__ | Batch 310 | Read=79360 | Written=61347
+2026-06-30 02:41:17 | INFO     | __main__ | Batch 310 | Read=79360 | Written=61347
+2026-06-30 02:41:18 | INFO     | __main__ | Batch 311 | Read=79616 | Written=61568
+2026-06-30 02:41:18 | INFO     | __main__ | Batch 311 | Read=79616 | Written=61568
+2026-06-30 02:41:19 | INFO     | __main__ | Batch 312 | Read=79872 | Written=61793
+2026-06-30 02:41:19 | INFO     | __main__ | Batch 312 | Read=79872 | Written=61793
+2026-06-30 02:41:20 | INFO     | __main__ | Batch 313 | Read=80128 | Written=61993
+2026-06-30 02:41:20 | INFO     | __main__ | Batch 313 | Read=80128 | Written=61993
+2026-06-30 02:41:22 | INFO     | __main__ | Batch 314 | Read=80384 | Written=62221
+2026-06-30 02:41:22 | INFO     | __main__ | Batch 314 | Read=80384 | Written=62221
+2026-06-30 02:41:23 | INFO     | __main__ | Batch 315 | Read=80640 | Written=62426
+2026-06-30 02:41:23 | INFO     | __main__ | Batch 315 | Read=80640 | Written=62426
+2026-06-30 02:41:24 | INFO     | __main__ | Batch 316 | Read=80896 | Written=62634
+2026-06-30 02:41:24 | INFO     | __main__ | Batch 316 | Read=80896 | Written=62634
+2026-06-30 02:41:25 | INFO     | __main__ | Batch 317 | Read=81152 | Written=62842
+2026-06-30 02:41:25 | INFO     | __main__ | Batch 317 | Read=81152 | Written=62842
+2026-06-30 02:41:26 | INFO     | __main__ | Batch 318 | Read=81408 | Written=63048
+2026-06-30 02:41:26 | INFO     | __main__ | Batch 318 | Read=81408 | Written=63048
+2026-06-30 02:41:27 | INFO     | __main__ | Batch 319 | Read=81664 | Written=63257
+2026-06-30 02:41:27 | INFO     | __main__ | Batch 319 | Read=81664 | Written=63257
+2026-06-30 02:41:28 | INFO     | __main__ | Batch 320 | Read=81920 | Written=63452
+2026-06-30 02:41:28 | INFO     | __main__ | Batch 320 | Read=81920 | Written=63452
+2026-06-30 02:41:30 | INFO     | __main__ | Batch 321 | Read=82176 | Written=63675
+2026-06-30 02:41:30 | INFO     | __main__ | Batch 321 | Read=82176 | Written=63675
+2026-06-30 02:41:31 | INFO     | __main__ | Batch 322 | Read=82432 | Written=63893
+2026-06-30 02:41:31 | INFO     | __main__ | Batch 322 | Read=82432 | Written=63893
+2026-06-30 02:41:31 | INFO     | __main__ | Batch 323 | Read=82688 | Written=64113
+2026-06-30 02:41:31 | INFO     | __main__ | Batch 323 | Read=82688 | Written=64113
+2026-06-30 02:41:32 | INFO     | __main__ | Batch 324 | Read=82944 | Written=64335
+2026-06-30 02:41:32 | INFO     | __main__ | Batch 324 | Read=82944 | Written=64335
+2026-06-30 02:41:33 | INFO     | __main__ | Batch 325 | Read=83200 | Written=64568
+2026-06-30 02:41:33 | INFO     | __main__ | Batch 325 | Read=83200 | Written=64568
+2026-06-30 02:41:34 | INFO     | __main__ | Batch 326 | Read=83456 | Written=64791
+2026-06-30 02:41:34 | INFO     | __main__ | Batch 326 | Read=83456 | Written=64791
+2026-06-30 02:41:35 | INFO     | __main__ | Batch 327 | Read=83712 | Written=65009
+2026-06-30 02:41:35 | INFO     | __main__ | Batch 327 | Read=83712 | Written=65009
+2026-06-30 02:41:36 | INFO     | __main__ | Batch 328 | Read=83968 | Written=65228
+2026-06-30 02:41:36 | INFO     | __main__ | Batch 328 | Read=83968 | Written=65228
+2026-06-30 02:41:37 | INFO     | __main__ | Batch 329 | Read=84224 | Written=65453
+2026-06-30 02:41:37 | INFO     | __main__ | Batch 329 | Read=84224 | Written=65453
+2026-06-30 02:41:39 | INFO     | __main__ | Batch 330 | Read=84480 | Written=65636
+2026-06-30 02:41:39 | INFO     | __main__ | Batch 330 | Read=84480 | Written=65636
+2026-06-30 02:41:40 | INFO     | __main__ | Batch 331 | Read=84736 | Written=65802
+2026-06-30 02:41:40 | INFO     | __main__ | Batch 331 | Read=84736 | Written=65802
+2026-06-30 02:41:41 | INFO     | __main__ | Batch 332 | Read=84992 | Written=65965
+2026-06-30 02:41:41 | INFO     | __main__ | Batch 332 | Read=84992 | Written=65965
+2026-06-30 02:41:43 | INFO     | __main__ | Batch 333 | Read=85248 | Written=66162
+2026-06-30 02:41:43 | INFO     | __main__ | Batch 333 | Read=85248 | Written=66162
+2026-06-30 02:41:44 | INFO     | __main__ | Batch 334 | Read=85504 | Written=66368
+2026-06-30 02:41:44 | INFO     | __main__ | Batch 334 | Read=85504 | Written=66368
+2026-06-30 02:41:46 | INFO     | __main__ | Batch 335 | Read=85760 | Written=66555
+2026-06-30 02:41:46 | INFO     | __main__ | Batch 335 | Read=85760 | Written=66555
+2026-06-30 02:41:46 | INFO     | __main__ | Batch 336 | Read=86016 | Written=66735
+2026-06-30 02:41:46 | INFO     | __main__ | Batch 336 | Read=86016 | Written=66735
+2026-06-30 02:41:48 | INFO     | __main__ | Batch 337 | Read=86272 | Written=66897
+2026-06-30 02:41:48 | INFO     | __main__ | Batch 337 | Read=86272 | Written=66897
+2026-06-30 02:41:49 | INFO     | __main__ | Batch 338 | Read=86528 | Written=67061
+2026-06-30 02:41:49 | INFO     | __main__ | Batch 338 | Read=86528 | Written=67061
+2026-06-30 02:41:51 | INFO     | __main__ | Batch 339 | Read=86784 | Written=67232
+2026-06-30 02:41:51 | INFO     | __main__ | Batch 339 | Read=86784 | Written=67232
+2026-06-30 02:41:52 | INFO     | __main__ | Batch 340 | Read=87040 | Written=67415
+2026-06-30 02:41:52 | INFO     | __main__ | Batch 340 | Read=87040 | Written=67415
+2026-06-30 02:41:54 | INFO     | __main__ | Batch 341 | Read=87296 | Written=67617
+2026-06-30 02:41:54 | INFO     | __main__ | Batch 341 | Read=87296 | Written=67617
+2026-06-30 02:41:55 | INFO     | __main__ | Batch 342 | Read=87552 | Written=67788
+2026-06-30 02:41:55 | INFO     | __main__ | Batch 342 | Read=87552 | Written=67788
+2026-06-30 02:41:56 | INFO     | __main__ | Batch 343 | Read=87808 | Written=67973
+2026-06-30 02:41:56 | INFO     | __main__ | Batch 343 | Read=87808 | Written=67973
+2026-06-30 02:41:58 | INFO     | __main__ | Batch 344 | Read=88064 | Written=68148
+2026-06-30 02:41:58 | INFO     | __main__ | Batch 344 | Read=88064 | Written=68148
+2026-06-30 02:41:59 | INFO     | __main__ | Batch 345 | Read=88320 | Written=68307
+2026-06-30 02:41:59 | INFO     | __main__ | Batch 345 | Read=88320 | Written=68307
+2026-06-30 02:42:01 | INFO     | __main__ | Batch 346 | Read=88576 | Written=68492
+2026-06-30 02:42:01 | INFO     | __main__ | Batch 346 | Read=88576 | Written=68492
+2026-06-30 02:42:02 | INFO     | __main__ | Batch 347 | Read=88832 | Written=68679
+2026-06-30 02:42:02 | INFO     | __main__ | Batch 347 | Read=88832 | Written=68679
+2026-06-30 02:42:04 | INFO     | __main__ | Batch 348 | Read=89088 | Written=68843
+2026-06-30 02:42:04 | INFO     | __main__ | Batch 348 | Read=89088 | Written=68843
+2026-06-30 02:42:06 | INFO     | __main__ | Batch 349 | Read=89344 | Written=69009
+2026-06-30 02:42:06 | INFO     | __main__ | Batch 349 | Read=89344 | Written=69009
+2026-06-30 02:42:07 | INFO     | __main__ | Batch 350 | Read=89600 | Written=69199
+2026-06-30 02:42:07 | INFO     | __main__ | Batch 350 | Read=89600 | Written=69199
+2026-06-30 02:42:09 | INFO     | __main__ | Batch 351 | Read=89856 | Written=69357
+2026-06-30 02:42:09 | INFO     | __main__ | Batch 351 | Read=89856 | Written=69357
+2026-06-30 02:42:10 | INFO     | __main__ | Batch 352 | Read=90112 | Written=69484
+2026-06-30 02:42:10 | INFO     | __main__ | Batch 352 | Read=90112 | Written=69484
+2026-06-30 02:42:11 | INFO     | __main__ | Batch 353 | Read=90368 | Written=69675
+2026-06-30 02:42:11 | INFO     | __main__ | Batch 353 | Read=90368 | Written=69675
+2026-06-30 02:42:13 | INFO     | __main__ | Batch 354 | Read=90624 | Written=69841
+2026-06-30 02:42:13 | INFO     | __main__ | Batch 354 | Read=90624 | Written=69841
+2026-06-30 02:42:15 | INFO     | __main__ | Batch 355 | Read=90880 | Written=70001
+2026-06-30 02:42:15 | INFO     | __main__ | Batch 355 | Read=90880 | Written=70001
+2026-06-30 02:42:16 | INFO     | __main__ | Batch 356 | Read=91136 | Written=70180
+2026-06-30 02:42:16 | INFO     | __main__ | Batch 356 | Read=91136 | Written=70180
+2026-06-30 02:42:18 | INFO     | __main__ | Batch 357 | Read=91392 | Written=70389
+2026-06-30 02:42:18 | INFO     | __main__ | Batch 357 | Read=91392 | Written=70389
+2026-06-30 02:42:20 | INFO     | __main__ | Batch 358 | Read=91648 | Written=70562
+2026-06-30 02:42:20 | INFO     | __main__ | Batch 358 | Read=91648 | Written=70562
+2026-06-30 02:42:22 | INFO     | __main__ | Batch 359 | Read=91904 | Written=70723
+2026-06-30 02:42:22 | INFO     | __main__ | Batch 359 | Read=91904 | Written=70723
+2026-06-30 02:42:23 | INFO     | __main__ | Batch 360 | Read=92160 | Written=70897
+2026-06-30 02:42:23 | INFO     | __main__ | Batch 360 | Read=92160 | Written=70897
+2026-06-30 02:42:25 | INFO     | __main__ | Batch 361 | Read=92416 | Written=71074
+2026-06-30 02:42:25 | INFO     | __main__ | Batch 361 | Read=92416 | Written=71074
+2026-06-30 02:42:26 | INFO     | __main__ | Batch 362 | Read=92672 | Written=71251
+2026-06-30 02:42:26 | INFO     | __main__ | Batch 362 | Read=92672 | Written=71251
+2026-06-30 02:42:28 | INFO     | __main__ | Batch 363 | Read=92928 | Written=71419
+2026-06-30 02:42:28 | INFO     | __main__ | Batch 363 | Read=92928 | Written=71419
+2026-06-30 02:42:29 | INFO     | __main__ | Batch 364 | Read=93184 | Written=71593
+2026-06-30 02:42:29 | INFO     | __main__ | Batch 364 | Read=93184 | Written=71593
+2026-06-30 02:42:31 | INFO     | __main__ | Batch 365 | Read=93440 | Written=71757
+2026-06-30 02:42:31 | INFO     | __main__ | Batch 365 | Read=93440 | Written=71757
+2026-06-30 02:42:32 | INFO     | __main__ | Batch 366 | Read=93696 | Written=71933
+2026-06-30 02:42:32 | INFO     | __main__ | Batch 366 | Read=93696 | Written=71933
+2026-06-30 02:42:33 | INFO     | __main__ | Batch 367 | Read=93952 | Written=72091
+2026-06-30 02:42:33 | INFO     | __main__ | Batch 367 | Read=93952 | Written=72091
+2026-06-30 02:42:34 | INFO     | __main__ | Batch 368 | Read=94208 | Written=72266
+2026-06-30 02:42:34 | INFO     | __main__ | Batch 368 | Read=94208 | Written=72266
+2026-06-30 02:42:35 | INFO     | __main__ | Batch 369 | Read=94464 | Written=72434
+2026-06-30 02:42:35 | INFO     | __main__ | Batch 369 | Read=94464 | Written=72434
+2026-06-30 02:42:36 | INFO     | __main__ | Batch 370 | Read=94720 | Written=72587
+2026-06-30 02:42:36 | INFO     | __main__ | Batch 370 | Read=94720 | Written=72587
+2026-06-30 02:42:37 | INFO     | __main__ | Batch 371 | Read=94967 | Written=72741
+2026-06-30 02:42:37 | INFO     | __main__ | Batch 371 | Read=94967 | Written=72741
+2026-06-30 02:42:37 | INFO     | __main__ | Quality checks complete.
+2026-06-30 02:42:37 | INFO     | __main__ | Validating filtered dataset...
+2026-06-30 02:49:04 | INFO     | __main__ | Validation successful.
+2026-06-30 02:49:04 | INFO     | __main__ | Writing quality report...
+2026-06-30 02:49:04 | INFO     | __main__ | Quality report written to:
+2026-06-30 02:49:04 | INFO     | __main__ | D:\coperate-misconduct-warning\data\interim\validated\quality_check_report.json
+2026-06-30 02:49:04 | INFO     | __main__ | ======================================================================
+2026-06-30 02:49:04 | INFO     | __main__ | Quality Check Summary
+2026-06-30 02:49:04 | INFO     | __main__ | ======================================================================
+2026-06-30 02:49:04 | INFO     | __main__ | rows_read: 94967
+2026-06-30 02:49:04 | INFO     | __main__ | rows_written: 72741
+2026-06-30 02:49:04 | INFO     | __main__ | removed_short_mda: 18162
+2026-06-30 02:49:04 | INFO     | __main__ | removed_amended: 13274
+2026-06-30 02:49:04 | INFO     | __main__ | removed_pre1993: 0
+2026-06-30 02:49:04 | INFO     | __main__ | total_removed: 22226
+2026-06-30 02:49:04 | INFO     | __main__ | ======================================================================
+2026-06-30 02:49:04 | INFO     | __main__ | Quality-checked dataset written to:
+2026-06-30 02:49:04 | INFO     | __main__ | D:\coperate-misconduct-warning\data\interim\cleaned\quality_checked_firm_years.parquet
+2026-06-30 19:28:56 | INFO     | __main__ | ======================================================================
+2026-06-30 19:28:56 | INFO     | __main__ | Starting quality checks...
+2026-06-30 19:28:56 | INFO     | __main__ | Reading normalized dataset...
+2026-06-30 19:29:00 | INFO     | __main__ | Batch 1 | Read=256 | Written=188
+2026-06-30 19:29:01 | INFO     | __main__ | Batch 2 | Read=512 | Written=370
+2026-06-30 19:29:02 | INFO     | __main__ | Batch 3 | Read=768 | Written=533
+2026-06-30 19:29:03 | INFO     | __main__ | Batch 4 | Read=1024 | Written=732
+2026-06-30 19:29:04 | INFO     | __main__ | Batch 5 | Read=1280 | Written=913
+2026-06-30 19:29:04 | INFO     | __main__ | Batch 6 | Read=1536 | Written=1101
+2026-06-30 19:29:05 | INFO     | __main__ | Batch 7 | Read=1792 | Written=1251
+2026-06-30 19:29:06 | INFO     | __main__ | Batch 8 | Read=2048 | Written=1449
+2026-06-30 19:29:07 | INFO     | __main__ | Batch 9 | Read=2304 | Written=1628
+2026-06-30 19:29:07 | INFO     | __main__ | Batch 10 | Read=2560 | Written=1791
+2026-06-30 19:29:08 | INFO     | __main__ | Batch 11 | Read=2816 | Written=1937
+2026-06-30 19:29:09 | INFO     | __main__ | Batch 12 | Read=3072 | Written=2116
+2026-06-30 19:29:10 | INFO     | __main__ | Batch 13 | Read=3328 | Written=2316
+2026-06-30 19:29:11 | INFO     | __main__ | Batch 14 | Read=3584 | Written=2506
+2026-06-30 19:29:12 | INFO     | __main__ | Batch 15 | Read=3840 | Written=2654
+2026-06-30 19:29:12 | INFO     | __main__ | Batch 16 | Read=4096 | Written=2854
+2026-06-30 19:29:13 | INFO     | __main__ | Batch 17 | Read=4352 | Written=3019
+2026-06-30 19:29:14 | INFO     | __main__ | Batch 18 | Read=4608 | Written=3201
+2026-06-30 19:29:15 | INFO     | __main__ | Batch 19 | Read=4864 | Written=3371
+2026-06-30 19:29:15 | INFO     | __main__ | Batch 20 | Read=5120 | Written=3558
+2026-06-30 19:29:16 | INFO     | __main__ | Batch 21 | Read=5376 | Written=3698
+2026-06-30 19:29:17 | INFO     | __main__ | Batch 22 | Read=5632 | Written=3846
+2026-06-30 19:29:18 | INFO     | __main__ | Batch 23 | Read=5888 | Written=4020
+2026-06-30 19:29:19 | INFO     | __main__ | Batch 24 | Read=6144 | Written=4174
+2026-06-30 19:29:20 | INFO     | __main__ | Batch 25 | Read=6400 | Written=4364
+2026-06-30 19:29:21 | INFO     | __main__ | Batch 26 | Read=6656 | Written=4541
+2026-06-30 19:29:22 | INFO     | __main__ | Batch 27 | Read=6912 | Written=4722
+2026-06-30 19:29:22 | INFO     | __main__ | Batch 28 | Read=7168 | Written=4909
+2026-06-30 19:29:23 | INFO     | __main__ | Batch 29 | Read=7424 | Written=5082
+2026-06-30 19:29:24 | INFO     | __main__ | Batch 30 | Read=7680 | Written=5274
+2026-06-30 19:29:25 | INFO     | __main__ | Batch 31 | Read=7936 | Written=5462
+2026-06-30 19:29:26 | INFO     | __main__ | Batch 32 | Read=8192 | Written=5642
+2026-06-30 19:29:27 | INFO     | __main__ | Batch 33 | Read=8448 | Written=5832
+2026-06-30 19:29:27 | INFO     | __main__ | Batch 34 | Read=8704 | Written=5978
+2026-06-30 19:29:28 | INFO     | __main__ | Batch 35 | Read=8960 | Written=6140
+2026-06-30 19:29:29 | INFO     | __main__ | Batch 36 | Read=9216 | Written=6323
+2026-06-30 19:29:30 | INFO     | __main__ | Batch 37 | Read=9472 | Written=6538
+2026-06-30 19:29:31 | INFO     | __main__ | Batch 38 | Read=9728 | Written=6738
+2026-06-30 19:29:32 | INFO     | __main__ | Batch 39 | Read=9984 | Written=6937
+2026-06-30 19:29:32 | INFO     | __main__ | Batch 40 | Read=10240 | Written=7068
+2026-06-30 19:29:33 | INFO     | __main__ | Batch 41 | Read=10496 | Written=7220
+2026-06-30 19:29:34 | INFO     | __main__ | Batch 42 | Read=10752 | Written=7415
+2026-06-30 19:29:35 | INFO     | __main__ | Batch 43 | Read=11008 | Written=7592
+2026-06-30 19:29:36 | INFO     | __main__ | Batch 44 | Read=11264 | Written=7784
+2026-06-30 19:29:36 | INFO     | __main__ | Batch 45 | Read=11520 | Written=7973
+2026-06-30 19:29:37 | INFO     | __main__ | Batch 46 | Read=11776 | Written=8135
+2026-06-30 19:29:38 | INFO     | __main__ | Batch 47 | Read=12032 | Written=8284
+2026-06-30 19:29:39 | INFO     | __main__ | Batch 48 | Read=12288 | Written=8434
+2026-06-30 19:29:40 | INFO     | __main__ | Batch 49 | Read=12544 | Written=8594
+2026-06-30 19:29:41 | INFO     | __main__ | Batch 50 | Read=12800 | Written=8787
+2026-06-30 19:29:41 | INFO     | __main__ | Batch 51 | Read=13056 | Written=8979
+2026-06-30 19:29:42 | INFO     | __main__ | Batch 52 | Read=13312 | Written=9162
+2026-06-30 19:29:43 | INFO     | __main__ | Batch 53 | Read=13568 | Written=9332
+2026-06-30 19:29:44 | INFO     | __main__ | Batch 54 | Read=13824 | Written=9534
+2026-06-30 19:29:44 | INFO     | __main__ | Batch 55 | Read=14080 | Written=9654
+2026-06-30 19:29:45 | INFO     | __main__ | Batch 56 | Read=14336 | Written=9828
+2026-06-30 19:29:46 | INFO     | __main__ | Batch 57 | Read=14592 | Written=10008
+2026-06-30 19:29:46 | INFO     | __main__ | Batch 58 | Read=14848 | Written=10158
+2026-06-30 19:29:47 | INFO     | __main__ | Batch 59 | Read=15104 | Written=10344
+2026-06-30 19:29:48 | INFO     | __main__ | Batch 60 | Read=15360 | Written=10507
+2026-06-30 19:29:49 | INFO     | __main__ | Batch 61 | Read=15616 | Written=10649
+2026-06-30 19:29:50 | INFO     | __main__ | Batch 62 | Read=15872 | Written=10826
+2026-06-30 19:29:50 | INFO     | __main__ | Batch 63 | Read=16128 | Written=11019
+2026-06-30 19:29:51 | INFO     | __main__ | Batch 64 | Read=16384 | Written=11174
+2026-06-30 19:29:52 | INFO     | __main__ | Batch 65 | Read=16640 | Written=11361
+2026-06-30 19:29:53 | INFO     | __main__ | Batch 66 | Read=16896 | Written=11569
+2026-06-30 19:29:53 | INFO     | __main__ | Batch 67 | Read=17152 | Written=11747
+2026-06-30 19:29:54 | INFO     | __main__ | Batch 68 | Read=17408 | Written=11975
+2026-06-30 19:29:55 | INFO     | __main__ | Batch 69 | Read=17664 | Written=12186
+2026-06-30 19:29:56 | INFO     | __main__ | Batch 70 | Read=17920 | Written=12376
+2026-06-30 19:29:57 | INFO     | __main__ | Batch 71 | Read=18176 | Written=12522
+2026-06-30 19:29:57 | INFO     | __main__ | Batch 72 | Read=18432 | Written=12699
+2026-06-30 19:29:58 | INFO     | __main__ | Batch 73 | Read=18688 | Written=12888
+2026-06-30 19:29:59 | INFO     | __main__ | Batch 74 | Read=18944 | Written=13063
+2026-06-30 19:30:00 | INFO     | __main__ | Batch 75 | Read=19200 | Written=13247
+2026-06-30 19:30:01 | INFO     | __main__ | Batch 76 | Read=19456 | Written=13416
+2026-06-30 19:30:01 | INFO     | __main__ | Batch 77 | Read=19712 | Written=13566
+2026-06-30 19:30:02 | INFO     | __main__ | Batch 78 | Read=19968 | Written=13759
+2026-06-30 19:30:03 | INFO     | __main__ | Batch 79 | Read=20224 | Written=13907
+2026-06-30 19:30:04 | INFO     | __main__ | Batch 80 | Read=20480 | Written=14095
+2026-06-30 19:30:05 | INFO     | __main__ | Batch 81 | Read=20736 | Written=14298
+2026-06-30 19:30:06 | INFO     | __main__ | Batch 82 | Read=20992 | Written=14493
+2026-06-30 19:30:07 | INFO     | __main__ | Batch 83 | Read=21248 | Written=14672
+2026-06-30 19:30:07 | INFO     | __main__ | Batch 84 | Read=21504 | Written=14869
+2026-06-30 19:30:08 | INFO     | __main__ | Batch 85 | Read=21760 | Written=15050
+2026-06-30 19:30:09 | INFO     | __main__ | Batch 86 | Read=22016 | Written=15198
+2026-06-30 19:30:10 | INFO     | __main__ | Batch 87 | Read=22272 | Written=15361
+2026-06-30 19:30:10 | INFO     | __main__ | Batch 88 | Read=22528 | Written=15576
+2026-06-30 19:30:11 | INFO     | __main__ | Batch 89 | Read=22784 | Written=15751
+2026-06-30 19:30:12 | INFO     | __main__ | Batch 90 | Read=23040 | Written=15949
+2026-06-30 19:30:13 | INFO     | __main__ | Batch 91 | Read=23296 | Written=16138
+2026-06-30 19:30:14 | INFO     | __main__ | Batch 92 | Read=23552 | Written=16353
+2026-06-30 19:30:15 | INFO     | __main__ | Batch 93 | Read=23808 | Written=16508
+2026-06-30 19:30:16 | INFO     | __main__ | Batch 94 | Read=24064 | Written=16696
+2026-06-30 19:30:17 | INFO     | __main__ | Batch 95 | Read=24320 | Written=16892
+2026-06-30 19:30:18 | INFO     | __main__ | Batch 96 | Read=24576 | Written=17098
+2026-06-30 19:30:19 | INFO     | __main__ | Batch 97 | Read=24832 | Written=17292
+2026-06-30 19:30:20 | INFO     | __main__ | Batch 98 | Read=25088 | Written=17502
+2026-06-30 19:30:21 | INFO     | __main__ | Batch 99 | Read=25344 | Written=17713
+2026-06-30 19:30:22 | INFO     | __main__ | Batch 100 | Read=25600 | Written=17900
+2026-06-30 19:30:23 | INFO     | __main__ | Batch 101 | Read=25856 | Written=18088
+2026-06-30 19:30:24 | INFO     | __main__ | Batch 102 | Read=26112 | Written=18287
+2026-06-30 19:30:24 | INFO     | __main__ | Batch 103 | Read=26368 | Written=18499
+2026-06-30 19:30:25 | INFO     | __main__ | Batch 104 | Read=26624 | Written=18676
+2026-06-30 19:30:26 | INFO     | __main__ | Batch 105 | Read=26880 | Written=18861
+2026-06-30 19:30:27 | INFO     | __main__ | Batch 106 | Read=27136 | Written=19059
+2026-06-30 19:30:27 | INFO     | __main__ | Batch 107 | Read=27392 | Written=19237
+2026-06-30 19:30:28 | INFO     | __main__ | Batch 108 | Read=27648 | Written=19447
+2026-06-30 19:30:29 | INFO     | __main__ | Batch 109 | Read=27904 | Written=19615
+2026-06-30 19:30:30 | INFO     | __main__ | Batch 110 | Read=28160 | Written=19785
+2026-06-30 19:30:31 | INFO     | __main__ | Batch 111 | Read=28416 | Written=19982
+2026-06-30 19:30:32 | INFO     | __main__ | Batch 112 | Read=28672 | Written=20172
+2026-06-30 19:30:33 | INFO     | __main__ | Batch 113 | Read=28928 | Written=20377
+2026-06-30 19:30:34 | INFO     | __main__ | Batch 114 | Read=29184 | Written=20546
+2026-06-30 19:30:34 | INFO     | __main__ | Batch 115 | Read=29440 | Written=20645
+2026-06-30 19:30:35 | INFO     | __main__ | Batch 116 | Read=29696 | Written=20843
+2026-06-30 19:30:36 | INFO     | __main__ | Batch 117 | Read=29952 | Written=21049
+2026-06-30 19:30:37 | INFO     | __main__ | Batch 118 | Read=30208 | Written=21247
+2026-06-30 19:30:37 | INFO     | __main__ | Batch 119 | Read=30464 | Written=21464
+2026-06-30 19:30:38 | INFO     | __main__ | Batch 120 | Read=30720 | Written=21630
+2026-06-30 19:30:39 | INFO     | __main__ | Batch 121 | Read=30976 | Written=21827
+2026-06-30 19:30:40 | INFO     | __main__ | Batch 122 | Read=31232 | Written=22014
+2026-06-30 19:30:41 | INFO     | __main__ | Batch 123 | Read=31488 | Written=22207
+2026-06-30 19:30:42 | INFO     | __main__ | Batch 124 | Read=31744 | Written=22393
+2026-06-30 19:30:43 | INFO     | __main__ | Batch 125 | Read=32000 | Written=22611
+2026-06-30 19:30:44 | INFO     | __main__ | Batch 126 | Read=32256 | Written=22800
+2026-06-30 19:30:45 | INFO     | __main__ | Batch 127 | Read=32512 | Written=22987
+2026-06-30 19:30:47 | INFO     | __main__ | Batch 128 | Read=32768 | Written=23181
+2026-06-30 19:30:47 | INFO     | __main__ | Batch 129 | Read=33024 | Written=23356
+2026-06-30 19:30:48 | INFO     | __main__ | Batch 130 | Read=33280 | Written=23575
+2026-06-30 19:30:49 | INFO     | __main__ | Batch 131 | Read=33536 | Written=23767
+2026-06-30 19:30:49 | INFO     | __main__ | Batch 132 | Read=33792 | Written=23949
+2026-06-30 19:30:50 | INFO     | __main__ | Batch 133 | Read=34048 | Written=24149
+2026-06-30 19:30:50 | INFO     | __main__ | Batch 134 | Read=34304 | Written=24296
+2026-06-30 19:30:51 | INFO     | __main__ | Batch 135 | Read=34560 | Written=24490
+2026-06-30 19:30:51 | INFO     | __main__ | Batch 136 | Read=34816 | Written=24696
+2026-06-30 19:30:52 | INFO     | __main__ | Batch 137 | Read=35072 | Written=24909
+2026-06-30 19:30:53 | INFO     | __main__ | Batch 138 | Read=35328 | Written=25092
+2026-06-30 19:30:54 | INFO     | __main__ | Batch 139 | Read=35584 | Written=25296
+2026-06-30 19:30:54 | INFO     | __main__ | Batch 140 | Read=35840 | Written=25515
+2026-06-30 19:30:55 | INFO     | __main__ | Batch 141 | Read=36096 | Written=25700
+2026-06-30 19:30:56 | INFO     | __main__ | Batch 142 | Read=36352 | Written=25911
+2026-06-30 19:30:57 | INFO     | __main__ | Batch 143 | Read=36608 | Written=26106
+2026-06-30 19:30:58 | INFO     | __main__ | Batch 144 | Read=36864 | Written=26298
+2026-06-30 19:30:58 | INFO     | __main__ | Batch 145 | Read=37120 | Written=26520
+2026-06-30 19:30:59 | INFO     | __main__ | Batch 146 | Read=37376 | Written=26735
+2026-06-30 19:31:00 | INFO     | __main__ | Batch 147 | Read=37632 | Written=26916
+2026-06-30 19:31:00 | INFO     | __main__ | Batch 148 | Read=37888 | Written=27123
+2026-06-30 19:31:01 | INFO     | __main__ | Batch 149 | Read=38144 | Written=27314
+2026-06-30 19:31:02 | INFO     | __main__ | Batch 150 | Read=38400 | Written=27533
+2026-06-30 19:31:03 | INFO     | __main__ | Batch 151 | Read=38656 | Written=27712
+2026-06-30 19:31:03 | INFO     | __main__ | Batch 152 | Read=38912 | Written=27931
+2026-06-30 19:31:04 | INFO     | __main__ | Batch 153 | Read=39168 | Written=28115
+2026-06-30 19:31:05 | INFO     | __main__ | Batch 154 | Read=39424 | Written=28329
+2026-06-30 19:31:06 | INFO     | __main__ | Batch 155 | Read=39680 | Written=28513
+2026-06-30 19:31:07 | INFO     | __main__ | Batch 156 | Read=39936 | Written=28718
+2026-06-30 19:31:08 | INFO     | __main__ | Batch 157 | Read=40192 | Written=28910
+2026-06-30 19:31:09 | INFO     | __main__ | Batch 158 | Read=40448 | Written=29111
+2026-06-30 19:31:09 | INFO     | __main__ | Batch 159 | Read=40704 | Written=29324
+2026-06-30 19:31:10 | INFO     | __main__ | Batch 160 | Read=40960 | Written=29510
+2026-06-30 19:31:11 | INFO     | __main__ | Batch 161 | Read=41216 | Written=29729
+2026-06-30 19:31:12 | INFO     | __main__ | Batch 162 | Read=41472 | Written=29911
+2026-06-30 19:31:13 | INFO     | __main__ | Batch 163 | Read=41728 | Written=30102
+2026-06-30 19:31:14 | INFO     | __main__ | Batch 164 | Read=41984 | Written=30311
+2026-06-30 19:31:14 | INFO     | __main__ | Batch 165 | Read=42240 | Written=30515
+2026-06-30 19:31:15 | INFO     | __main__ | Batch 166 | Read=42496 | Written=30691
+2026-06-30 19:31:16 | INFO     | __main__ | Batch 167 | Read=42752 | Written=30887
+2026-06-30 19:31:17 | INFO     | __main__ | Batch 168 | Read=43008 | Written=31094
+2026-06-30 19:31:18 | INFO     | __main__ | Batch 169 | Read=43264 | Written=31294
+2026-06-30 19:31:19 | INFO     | __main__ | Batch 170 | Read=43520 | Written=31464
+2026-06-30 19:31:19 | INFO     | __main__ | Batch 171 | Read=43776 | Written=31670
+2026-06-30 19:31:20 | INFO     | __main__ | Batch 172 | Read=44032 | Written=31872
+2026-06-30 19:31:21 | INFO     | __main__ | Batch 173 | Read=44288 | Written=32068
+2026-06-30 19:31:21 | INFO     | __main__ | Batch 174 | Read=44544 | Written=32243
+2026-06-30 19:31:22 | INFO     | __main__ | Batch 175 | Read=44800 | Written=32444
+2026-06-30 19:31:23 | INFO     | __main__ | Batch 176 | Read=45056 | Written=32663
+2026-06-30 19:31:24 | INFO     | __main__ | Batch 177 | Read=45312 | Written=32871
+2026-06-30 19:31:24 | INFO     | __main__ | Batch 178 | Read=45568 | Written=33057
+2026-06-30 19:31:25 | INFO     | __main__ | Batch 179 | Read=45824 | Written=33282
+2026-06-30 19:31:26 | INFO     | __main__ | Batch 180 | Read=46080 | Written=33495
+2026-06-30 19:31:27 | INFO     | __main__ | Batch 181 | Read=46336 | Written=33686
+2026-06-30 19:31:28 | INFO     | __main__ | Batch 182 | Read=46592 | Written=33874
+2026-06-30 19:31:29 | INFO     | __main__ | Batch 183 | Read=46848 | Written=34088
+2026-06-30 19:31:30 | INFO     | __main__ | Batch 184 | Read=47104 | Written=34320
+2026-06-30 19:31:31 | INFO     | __main__ | Batch 185 | Read=47360 | Written=34537
+2026-06-30 19:31:32 | INFO     | __main__ | Batch 186 | Read=47616 | Written=34722
+2026-06-30 19:31:32 | INFO     | __main__ | Batch 187 | Read=47872 | Written=34910
+2026-06-30 19:31:33 | INFO     | __main__ | Batch 188 | Read=48128 | Written=35130
+2026-06-30 19:31:34 | INFO     | __main__ | Batch 189 | Read=48384 | Written=35338
+2026-06-30 19:31:35 | INFO     | __main__ | Batch 190 | Read=48640 | Written=35537
+2026-06-30 19:31:36 | INFO     | __main__ | Batch 191 | Read=48896 | Written=35729
+2026-06-30 19:31:37 | INFO     | __main__ | Batch 192 | Read=49152 | Written=35920
+2026-06-30 19:31:38 | INFO     | __main__ | Batch 193 | Read=49408 | Written=36132
+2026-06-30 19:31:39 | INFO     | __main__ | Batch 194 | Read=49664 | Written=36346
+2026-06-30 19:31:40 | INFO     | __main__ | Batch 195 | Read=49920 | Written=36542
+2026-06-30 19:31:41 | INFO     | __main__ | Batch 196 | Read=50176 | Written=36751
+2026-06-30 19:31:42 | INFO     | __main__ | Batch 197 | Read=50432 | Written=36972
+2026-06-30 19:31:42 | INFO     | __main__ | Batch 198 | Read=50688 | Written=37175
+2026-06-30 19:31:43 | INFO     | __main__ | Batch 199 | Read=50944 | Written=37382
+2026-06-30 19:31:44 | INFO     | __main__ | Batch 200 | Read=51200 | Written=37576
+2026-06-30 19:31:44 | INFO     | __main__ | Batch 201 | Read=51456 | Written=37798
+2026-06-30 19:31:45 | INFO     | __main__ | Batch 202 | Read=51712 | Written=38016
+2026-06-30 19:31:46 | INFO     | __main__ | Batch 203 | Read=51968 | Written=38198
+2026-06-30 19:31:46 | INFO     | __main__ | Batch 204 | Read=52224 | Written=38418
+2026-06-30 19:31:47 | INFO     | __main__ | Batch 205 | Read=52480 | Written=38615
+2026-06-30 19:31:48 | INFO     | __main__ | Batch 206 | Read=52736 | Written=38807
+2026-06-30 19:31:49 | INFO     | __main__ | Batch 207 | Read=52992 | Written=39009
+2026-06-30 19:31:50 | INFO     | __main__ | Batch 208 | Read=53248 | Written=39234
+2026-06-30 19:31:50 | INFO     | __main__ | Batch 209 | Read=53504 | Written=39420
+2026-06-30 19:31:51 | INFO     | __main__ | Batch 210 | Read=53760 | Written=39635
+2026-06-30 19:31:52 | INFO     | __main__ | Batch 211 | Read=54016 | Written=39846
+2026-06-30 19:31:53 | INFO     | __main__ | Batch 212 | Read=54272 | Written=40058
+2026-06-30 19:31:53 | INFO     | __main__ | Batch 213 | Read=54528 | Written=40284
+2026-06-30 19:31:54 | INFO     | __main__ | Batch 214 | Read=54784 | Written=40496
+2026-06-30 19:31:55 | INFO     | __main__ | Batch 215 | Read=55040 | Written=40713
+2026-06-30 19:31:56 | INFO     | __main__ | Batch 216 | Read=55296 | Written=40936
+2026-06-30 19:31:57 | INFO     | __main__ | Batch 217 | Read=55552 | Written=41155
+2026-06-30 19:31:58 | INFO     | __main__ | Batch 218 | Read=55808 | Written=41380
+2026-06-30 19:31:59 | INFO     | __main__ | Batch 219 | Read=56064 | Written=41602
+2026-06-30 19:32:00 | INFO     | __main__ | Batch 220 | Read=56320 | Written=41829
+2026-06-30 19:32:01 | INFO     | __main__ | Batch 221 | Read=56576 | Written=42047
+2026-06-30 19:32:02 | INFO     | __main__ | Batch 222 | Read=56832 | Written=42262
+2026-06-30 19:32:02 | INFO     | __main__ | Batch 223 | Read=57088 | Written=42474
+2026-06-30 19:32:03 | INFO     | __main__ | Batch 224 | Read=57344 | Written=42693
+2026-06-30 19:32:04 | INFO     | __main__ | Batch 225 | Read=57600 | Written=42904
+2026-06-30 19:32:05 | INFO     | __main__ | Batch 226 | Read=57856 | Written=43121
+2026-06-30 19:32:06 | INFO     | __main__ | Batch 227 | Read=58112 | Written=43322
+2026-06-30 19:32:07 | INFO     | __main__ | Batch 228 | Read=58368 | Written=43549
+2026-06-30 19:32:08 | INFO     | __main__ | Batch 229 | Read=58624 | Written=43756
+2026-06-30 19:32:10 | INFO     | __main__ | Batch 230 | Read=58880 | Written=43964
+2026-06-30 19:32:10 | INFO     | __main__ | Batch 231 | Read=59136 | Written=44115
+2026-06-30 19:32:11 | INFO     | __main__ | Batch 232 | Read=59392 | Written=44341
+2026-06-30 19:32:12 | INFO     | __main__ | Batch 233 | Read=59648 | Written=44552
+2026-06-30 19:32:13 | INFO     | __main__ | Batch 234 | Read=59904 | Written=44778
+2026-06-30 19:32:14 | INFO     | __main__ | Batch 235 | Read=60160 | Written=44999
+2026-06-30 19:32:15 | INFO     | __main__ | Batch 236 | Read=60416 | Written=45207
+2026-06-30 19:32:16 | INFO     | __main__ | Batch 237 | Read=60672 | Written=45426
+2026-06-30 19:32:17 | INFO     | __main__ | Batch 238 | Read=60928 | Written=45654
+2026-06-30 19:32:18 | INFO     | __main__ | Batch 239 | Read=61184 | Written=45867
+2026-06-30 19:32:19 | INFO     | __main__ | Batch 240 | Read=61440 | Written=46065
+2026-06-30 19:32:19 | INFO     | __main__ | Batch 241 | Read=61696 | Written=46279
+2026-06-30 19:32:20 | INFO     | __main__ | Batch 242 | Read=61952 | Written=46494
+2026-06-30 19:32:20 | INFO     | __main__ | Batch 243 | Read=62208 | Written=46723
+2026-06-30 19:32:21 | INFO     | __main__ | Batch 244 | Read=62464 | Written=46946
+2026-06-30 19:32:22 | INFO     | __main__ | Batch 245 | Read=62720 | Written=47172
+2026-06-30 19:32:23 | INFO     | __main__ | Batch 246 | Read=62976 | Written=47377
+2026-06-30 19:32:24 | INFO     | __main__ | Batch 247 | Read=63232 | Written=47590
+2026-06-30 19:32:25 | INFO     | __main__ | Batch 248 | Read=63488 | Written=47804
+2026-06-30 19:32:25 | INFO     | __main__ | Batch 249 | Read=63744 | Written=48025
+2026-06-30 19:32:26 | INFO     | __main__ | Batch 250 | Read=64000 | Written=48239
+2026-06-30 19:32:27 | INFO     | __main__ | Batch 251 | Read=64256 | Written=48432
+2026-06-30 19:32:27 | INFO     | __main__ | Batch 252 | Read=64512 | Written=48648
+2026-06-30 19:32:28 | INFO     | __main__ | Batch 253 | Read=64768 | Written=48880
+2026-06-30 19:32:29 | INFO     | __main__ | Batch 254 | Read=65024 | Written=49080
+2026-06-30 19:32:30 | INFO     | __main__ | Batch 255 | Read=65280 | Written=49293
+2026-06-30 19:32:30 | INFO     | __main__ | Batch 256 | Read=65536 | Written=49497
+2026-06-30 19:32:32 | INFO     | __main__ | Batch 257 | Read=65792 | Written=49707
+2026-06-30 19:32:33 | INFO     | __main__ | Batch 258 | Read=66048 | Written=49916
+2026-06-30 19:32:33 | INFO     | __main__ | Batch 259 | Read=66304 | Written=50131
+2026-06-30 19:32:34 | INFO     | __main__ | Batch 260 | Read=66560 | Written=50336
+2026-06-30 19:32:34 | INFO     | __main__ | Batch 261 | Read=66816 | Written=50544
+2026-06-30 19:32:35 | INFO     | __main__ | Batch 262 | Read=67072 | Written=50750
+2026-06-30 19:32:36 | INFO     | __main__ | Batch 263 | Read=67328 | Written=50964
+2026-06-30 19:32:36 | INFO     | __main__ | Batch 264 | Read=67584 | Written=51166
+2026-06-30 19:32:37 | INFO     | __main__ | Batch 265 | Read=67840 | Written=51389
+2026-06-30 19:32:37 | INFO     | __main__ | Batch 266 | Read=68096 | Written=51610
+2026-06-30 19:32:38 | INFO     | __main__ | Batch 267 | Read=68352 | Written=51823
+2026-06-30 19:32:39 | INFO     | __main__ | Batch 268 | Read=68608 | Written=52061
+2026-06-30 19:32:40 | INFO     | __main__ | Batch 269 | Read=68864 | Written=52277
+2026-06-30 19:32:40 | INFO     | __main__ | Batch 270 | Read=69120 | Written=52499
+2026-06-30 19:32:41 | INFO     | __main__ | Batch 271 | Read=69376 | Written=52724
+2026-06-30 19:32:42 | INFO     | __main__ | Batch 272 | Read=69632 | Written=52949
+2026-06-30 19:32:43 | INFO     | __main__ | Batch 273 | Read=69888 | Written=53160
+2026-06-30 19:32:44 | INFO     | __main__ | Batch 274 | Read=70144 | Written=53380
+2026-06-30 19:32:44 | INFO     | __main__ | Batch 275 | Read=70400 | Written=53612
+2026-06-30 19:32:45 | INFO     | __main__ | Batch 276 | Read=70656 | Written=53835
+2026-06-30 19:32:46 | INFO     | __main__ | Batch 277 | Read=70912 | Written=54065
+2026-06-30 19:32:46 | INFO     | __main__ | Batch 278 | Read=71168 | Written=54288
+2026-06-30 19:32:47 | INFO     | __main__ | Batch 279 | Read=71424 | Written=54505
+2026-06-30 19:32:48 | INFO     | __main__ | Batch 280 | Read=71680 | Written=54730
+2026-06-30 19:32:49 | INFO     | __main__ | Batch 281 | Read=71936 | Written=54932
+2026-06-30 19:32:49 | INFO     | __main__ | Batch 282 | Read=72192 | Written=55146
+2026-06-30 19:32:50 | INFO     | __main__ | Batch 283 | Read=72448 | Written=55373
+2026-06-30 19:32:51 | INFO     | __main__ | Batch 284 | Read=72704 | Written=55604
+2026-06-30 19:32:51 | INFO     | __main__ | Batch 285 | Read=72960 | Written=55829
+2026-06-30 19:32:52 | INFO     | __main__ | Batch 286 | Read=73216 | Written=56050
+2026-06-30 19:32:53 | INFO     | __main__ | Batch 287 | Read=73472 | Written=56270
+2026-06-30 19:32:54 | INFO     | __main__ | Batch 288 | Read=73728 | Written=56507
+2026-06-30 19:32:54 | INFO     | __main__ | Batch 289 | Read=73984 | Written=56733
+2026-06-30 19:32:55 | INFO     | __main__ | Batch 290 | Read=74240 | Written=56949
+2026-06-30 19:32:56 | INFO     | __main__ | Batch 291 | Read=74496 | Written=57173
+2026-06-30 19:32:56 | INFO     | __main__ | Batch 292 | Read=74752 | Written=57392
+2026-06-30 19:32:57 | INFO     | __main__ | Batch 293 | Read=75008 | Written=57623
+2026-06-30 19:32:58 | INFO     | __main__ | Batch 294 | Read=75264 | Written=57849
+2026-06-30 19:32:59 | INFO     | __main__ | Batch 295 | Read=75520 | Written=58062
+2026-06-30 19:32:59 | INFO     | __main__ | Batch 296 | Read=75776 | Written=58269
+2026-06-30 19:33:00 | INFO     | __main__ | Batch 297 | Read=76032 | Written=58493
+2026-06-30 19:33:01 | INFO     | __main__ | Batch 298 | Read=76288 | Written=58716
+2026-06-30 19:33:01 | INFO     | __main__ | Batch 299 | Read=76544 | Written=58938
+2026-06-30 19:33:02 | INFO     | __main__ | Batch 300 | Read=76800 | Written=59146
+2026-06-30 19:33:02 | INFO     | __main__ | Batch 301 | Read=77056 | Written=59372
+2026-06-30 19:33:03 | INFO     | __main__ | Batch 302 | Read=77312 | Written=59605
+2026-06-30 19:33:04 | INFO     | __main__ | Batch 303 | Read=77568 | Written=59827
+2026-06-30 19:33:04 | INFO     | __main__ | Batch 304 | Read=77824 | Written=60041
+2026-06-30 19:33:05 | INFO     | __main__ | Batch 305 | Read=78080 | Written=60267
+2026-06-30 19:33:06 | INFO     | __main__ | Batch 306 | Read=78336 | Written=60484
+2026-06-30 19:33:07 | INFO     | __main__ | Batch 307 | Read=78592 | Written=60705
+2026-06-30 19:33:07 | INFO     | __main__ | Batch 308 | Read=78848 | Written=60927
+2026-06-30 19:33:08 | INFO     | __main__ | Batch 309 | Read=79104 | Written=61143
+2026-06-30 19:33:09 | INFO     | __main__ | Batch 310 | Read=79360 | Written=61347
+2026-06-30 19:33:09 | INFO     | __main__ | Batch 311 | Read=79616 | Written=61568
+2026-06-30 19:33:10 | INFO     | __main__ | Batch 312 | Read=79872 | Written=61793
+2026-06-30 19:33:11 | INFO     | __main__ | Batch 313 | Read=80128 | Written=61993
+2026-06-30 19:33:11 | INFO     | __main__ | Batch 314 | Read=80384 | Written=62221
+2026-06-30 19:33:12 | INFO     | __main__ | Batch 315 | Read=80640 | Written=62426
+2026-06-30 19:33:13 | INFO     | __main__ | Batch 316 | Read=80896 | Written=62634
+2026-06-30 19:33:13 | INFO     | __main__ | Batch 317 | Read=81152 | Written=62842
+2026-06-30 19:33:14 | INFO     | __main__ | Batch 318 | Read=81408 | Written=63048
+2026-06-30 19:33:15 | INFO     | __main__ | Batch 319 | Read=81664 | Written=63257
+2026-06-30 19:33:15 | INFO     | __main__ | Batch 320 | Read=81920 | Written=63452
+2026-06-30 19:33:16 | INFO     | __main__ | Batch 321 | Read=82176 | Written=63675
+2026-06-30 19:33:17 | INFO     | __main__ | Batch 322 | Read=82432 | Written=63893
+2026-06-30 19:33:17 | INFO     | __main__ | Batch 323 | Read=82688 | Written=64113
+2026-06-30 19:33:18 | INFO     | __main__ | Batch 324 | Read=82944 | Written=64335
+2026-06-30 19:33:19 | INFO     | __main__ | Batch 325 | Read=83200 | Written=64568
+2026-06-30 19:33:19 | INFO     | __main__ | Batch 326 | Read=83456 | Written=64791
+2026-06-30 19:33:20 | INFO     | __main__ | Batch 327 | Read=83712 | Written=65009
+2026-06-30 19:33:20 | INFO     | __main__ | Batch 328 | Read=83968 | Written=65228
+2026-06-30 19:33:21 | INFO     | __main__ | Batch 329 | Read=84224 | Written=65453
+2026-06-30 19:33:22 | INFO     | __main__ | Batch 330 | Read=84480 | Written=65636
+2026-06-30 19:33:22 | INFO     | __main__ | Batch 331 | Read=84736 | Written=65802
+2026-06-30 19:33:23 | INFO     | __main__ | Batch 332 | Read=84992 | Written=65965
+2026-06-30 19:33:25 | INFO     | __main__ | Batch 333 | Read=85248 | Written=66162
+2026-06-30 19:33:25 | INFO     | __main__ | Batch 334 | Read=85504 | Written=66368
+2026-06-30 19:33:26 | INFO     | __main__ | Batch 335 | Read=85760 | Written=66555
+2026-06-30 19:33:27 | INFO     | __main__ | Batch 336 | Read=86016 | Written=66735
+2026-06-30 19:33:28 | INFO     | __main__ | Batch 337 | Read=86272 | Written=66897
+2026-06-30 19:33:28 | INFO     | __main__ | Batch 338 | Read=86528 | Written=67061
+2026-06-30 19:33:29 | INFO     | __main__ | Batch 339 | Read=86784 | Written=67232
+2026-06-30 19:33:30 | INFO     | __main__ | Batch 340 | Read=87040 | Written=67415
+2026-06-30 19:33:31 | INFO     | __main__ | Batch 341 | Read=87296 | Written=67617
+2026-06-30 19:33:32 | INFO     | __main__ | Batch 342 | Read=87552 | Written=67788
+2026-06-30 19:33:32 | INFO     | __main__ | Batch 343 | Read=87808 | Written=67973
+2026-06-30 19:33:33 | INFO     | __main__ | Batch 344 | Read=88064 | Written=68148
+2026-06-30 19:33:34 | INFO     | __main__ | Batch 345 | Read=88320 | Written=68307
+2026-06-30 19:33:35 | INFO     | __main__ | Batch 346 | Read=88576 | Written=68492
+2026-06-30 19:33:36 | INFO     | __main__ | Batch 347 | Read=88832 | Written=68679
+2026-06-30 19:33:37 | INFO     | __main__ | Batch 348 | Read=89088 | Written=68843
+2026-06-30 19:33:38 | INFO     | __main__ | Batch 349 | Read=89344 | Written=69009
+2026-06-30 19:33:39 | INFO     | __main__ | Batch 350 | Read=89600 | Written=69199
+2026-06-30 19:33:40 | INFO     | __main__ | Batch 351 | Read=89856 | Written=69357
+2026-06-30 19:33:40 | INFO     | __main__ | Batch 352 | Read=90112 | Written=69484
+2026-06-30 19:33:41 | INFO     | __main__ | Batch 353 | Read=90368 | Written=69675
+2026-06-30 19:33:42 | INFO     | __main__ | Batch 354 | Read=90624 | Written=69841
+2026-06-30 19:33:43 | INFO     | __main__ | Batch 355 | Read=90880 | Written=70001
+2026-06-30 19:33:44 | INFO     | __main__ | Batch 356 | Read=91136 | Written=70180
+2026-06-30 19:33:45 | INFO     | __main__ | Batch 357 | Read=91392 | Written=70389
+2026-06-30 19:33:46 | INFO     | __main__ | Batch 358 | Read=91648 | Written=70562
+2026-06-30 19:33:48 | INFO     | __main__ | Batch 359 | Read=91904 | Written=70723
+2026-06-30 19:33:48 | INFO     | __main__ | Batch 360 | Read=92160 | Written=70897
+2026-06-30 19:33:49 | INFO     | __main__ | Batch 361 | Read=92416 | Written=71074
+2026-06-30 19:33:50 | INFO     | __main__ | Batch 362 | Read=92672 | Written=71251
+2026-06-30 19:33:51 | INFO     | __main__ | Batch 363 | Read=92928 | Written=71419
+2026-06-30 19:33:52 | INFO     | __main__ | Batch 364 | Read=93184 | Written=71593
+2026-06-30 19:33:53 | INFO     | __main__ | Batch 365 | Read=93440 | Written=71757
+2026-06-30 19:33:53 | INFO     | __main__ | Batch 366 | Read=93696 | Written=71933
+2026-06-30 19:33:54 | INFO     | __main__ | Batch 367 | Read=93952 | Written=72091
+2026-06-30 19:33:54 | INFO     | __main__ | Batch 368 | Read=94208 | Written=72266
+2026-06-30 19:33:55 | INFO     | __main__ | Batch 369 | Read=94464 | Written=72434
+2026-06-30 19:33:55 | INFO     | __main__ | Batch 370 | Read=94720 | Written=72587
+2026-06-30 19:33:56 | INFO     | __main__ | Batch 371 | Read=94967 | Written=72741
+2026-06-30 19:33:56 | INFO     | __main__ | Quality checks complete.
+2026-06-30 19:33:56 | INFO     | __main__ | Validating filtered dataset...
+2026-06-30 19:37:51 | INFO     | __main__ | Validation successful.
+2026-06-30 19:37:51 | INFO     | __main__ | Writing quality report...
+2026-06-30 19:37:51 | INFO     | __main__ | Quality report written to:
+2026-06-30 19:37:51 | INFO     | __main__ | D:\coperate-misconduct-warning\data\interim\validated\quality_check_report.json
+2026-06-30 19:37:51 | INFO     | __main__ | ======================================================================
+2026-06-30 19:37:51 | INFO     | __main__ | Quality Check Summary
+2026-06-30 19:37:51 | INFO     | __main__ | ======================================================================
+2026-06-30 19:37:51 | INFO     | __main__ | rows_read: 94967
+2026-06-30 19:37:51 | INFO     | __main__ | rows_written: 72741
+2026-06-30 19:37:51 | INFO     | __main__ | removed_short_mda: 11509
+2026-06-30 19:37:51 | INFO     | __main__ | removed_amended: 13274
+2026-06-30 19:37:51 | INFO     | __main__ | removed_pre1993: 0
+2026-06-30 19:37:51 | INFO     | __main__ | total_removed: 22226
+2026-06-30 19:37:51 | INFO     | __main__ | removed_reference_only: 6653
+2026-06-30 19:37:51 | INFO     | __main__ | ======================================================================
+2026-06-30 19:37:51 | INFO     | __main__ | Quality-checked dataset written to:
+2026-06-30 19:37:51 | INFO     | __main__ | D:\coperate-misconduct-warning\data\interim\cleaned\quality_checked_firm_years.parquet
+2026-07-01 00:13:01 | INFO     | __main__ | ======================================================================
+2026-07-01 00:13:01 | INFO     | __main__ | Starting deduplication pipeline...
+2026-07-01 00:13:01 | INFO     | __main__ | Reading normalized dataset...
+2026-07-01 00:13:04 | INFO     | __main__ | Batch 1 | Read=4096 Written=4096 Duplicates=0
+2026-07-01 00:13:07 | INFO     | __main__ | Batch 2 | Read=8192 Written=8191 Duplicates=1
+2026-07-01 00:13:10 | INFO     | __main__ | Batch 3 | Read=12288 Written=12285 Duplicates=3
+2026-07-01 00:13:12 | INFO     | __main__ | Batch 4 | Read=16384 Written=16324 Duplicates=60
+2026-07-01 00:13:15 | INFO     | __main__ | Batch 5 | Read=20480 Written=20416 Duplicates=64
+2026-07-01 00:13:17 | INFO     | __main__ | Batch 6 | Read=24576 Written=24511 Duplicates=65
+2026-07-01 00:13:20 | INFO     | __main__ | Batch 7 | Read=28672 Written=28604 Duplicates=68
+2026-07-01 00:13:22 | INFO     | __main__ | Batch 8 | Read=32768 Written=32696 Duplicates=72
+2026-07-01 00:13:25 | INFO     | __main__ | Batch 9 | Read=36864 Written=36792 Duplicates=72
+2026-07-01 00:13:28 | INFO     | __main__ | Batch 10 | Read=40960 Written=40876 Duplicates=84
+2026-07-01 00:13:31 | INFO     | __main__ | Batch 11 | Read=45056 Written=44970 Duplicates=86
+2026-07-01 00:13:34 | INFO     | __main__ | Batch 12 | Read=49152 Written=49041 Duplicates=111
+2026-07-01 00:13:36 | INFO     | __main__ | Batch 13 | Read=53248 Written=53122 Duplicates=126
+2026-07-01 00:13:39 | INFO     | __main__ | Batch 14 | Read=57344 Written=57211 Duplicates=133
+2026-07-01 00:13:41 | INFO     | __main__ | Batch 15 | Read=61440 Written=61305 Duplicates=135
+2026-07-01 00:13:43 | INFO     | __main__ | Batch 16 | Read=65536 Written=65387 Duplicates=149
+2026-07-01 00:13:45 | INFO     | __main__ | Batch 17 | Read=69632 Written=67087 Duplicates=2545
+2026-07-01 00:13:46 | INFO     | __main__ | Batch 18 | Read=72741 Written=68874 Duplicates=3867
+2026-07-01 00:13:46 | INFO     | __main__ | Validating output...
+2026-07-01 00:14:00 | INFO     | __main__ | Validation successful.
+2026-07-01 00:14:00 | INFO     | __main__ | ============================================================
+2026-07-01 00:14:00 | INFO     | __main__ | Deduplication Summary
+2026-07-01 00:14:00 | INFO     | __main__ | Rows read: 72741
+2026-07-01 00:14:00 | INFO     | __main__ | Rows written: 68874
+2026-07-01 00:14:00 | INFO     | __main__ | Duplicates: 3867
+2026-07-01 00:14:00 | INFO     | __main__ | ============================================================
+2026-07-01 00:14:00 | INFO     | __main__ | Deduplicated dataset written to: D:\coperate-misconduct-warning\data\interim\cleaned\deduplicated_firm_years.parquet
+2026-07-01 00:14:00 | INFO     | __main__ | ======================================================================
+2026-07-01 00:18:59 | INFO     | __main__ | ======================================================================
+2026-07-01 00:18:59 | INFO     | __main__ | Starting dataset split pipeline...
+2026-07-01 00:18:59 | INFO     | __main__ | Reading quality-checked dataset...
+2026-07-01 00:19:09 | INFO     | __main__ | Loaded 68874 records.
+2026-07-01 00:20:33 | INFO     | __main__ | Train/Val pool=56330 | Test=12544
+2026-07-01 00:20:34 | INFO     | __main__ | Validating splits...
+2026-07-01 00:20:34 | INFO     | __main__ | Validation successful.
+2026-07-01 00:20:34 | INFO     | __main__ | Saving splits...
+2026-07-01 00:20:56 | INFO     | __main__ | Saved trainval_dataset.parquet (56330 rows)
+2026-07-01 00:20:59 | INFO     | __main__ | Saved test_dataset.parquet (12544 rows)
+2026-07-01 00:20:59 | INFO     | __main__ | All splits saved.
+2026-07-01 00:20:59 | INFO     | __main__ | Writing split report...
+2026-07-01 00:20:59 | INFO     | __main__ | Split report written to: D:\coperate-misconduct-warning\data\interim\validated\split_report.json
+2026-07-01 00:20:59 | INFO     | __main__ | ======================================================================
+2026-07-01 00:20:59 | INFO     | __main__ | Dataset Split Summary
+2026-07-01 00:20:59 | INFO     | __main__ | ======================================================================
+2026-07-01 00:20:59 | INFO     | __main__ | total_records: 68874
+2026-07-01 00:20:59 | INFO     | __main__ | trainval_records: 56330
+2026-07-01 00:20:59 | INFO     | __main__ | test_records: 12544
+2026-07-01 00:20:59 | INFO     | __main__ | test_cutoff_year: 2023
+2026-07-01 00:20:59 | INFO     | __main__ | split_method: temporal
+2026-07-01 00:20:59 | INFO     | __main__ | walk_forward_note: Walk-forward CV folds are generated dynamically in src/evaluation/cross_validation.py over trainval_dataset.parquet
+2026-07-01 00:20:59 | INFO     | __main__ | trainval_ratio: 0.8179
+2026-07-01 00:20:59 | INFO     | __main__ | test_ratio: 0.1821
+2026-07-01 00:20:59 | INFO     | __main__ | ======================================================================
+2026-07-01 00:20:59 | INFO     | __main__ | Dataset splitting complete.
+2026-07-01 00:20:59 | INFO     | __main__ | ======================================================================
+2026-07-01 00:25:23 | INFO     | __main__ | ======================================================================
+2026-07-01 00:25:23 | INFO     | __main__ | Starting dataset split pipeline...
+2026-07-01 00:25:23 | INFO     | __main__ | Reading quality-checked dataset...
+2026-07-01 00:25:34 | INFO     | __main__ | Loaded 68874 records.
+2026-07-01 00:26:28 | INFO     | __main__ | Train/Val pool=41748 | Test=27126
+2026-07-01 00:26:28 | INFO     | __main__ | Validating splits...
+2026-07-01 00:26:28 | INFO     | __main__ | Validation successful.
+2026-07-01 00:26:28 | INFO     | __main__ | Saving splits...
+2026-07-01 00:26:42 | INFO     | __main__ | Saved trainval_dataset.parquet (41748 rows)
+2026-07-01 00:26:49 | INFO     | __main__ | Saved test_dataset.parquet (27126 rows)
+2026-07-01 00:26:49 | INFO     | __main__ | All splits saved.
+2026-07-01 00:26:49 | INFO     | __main__ | Writing split report...
+2026-07-01 00:26:49 | INFO     | __main__ | Split report written to: D:\coperate-misconduct-warning\data\interim\validated\split_report.json
+2026-07-01 00:26:49 | INFO     | __main__ | ======================================================================
+2026-07-01 00:26:49 | INFO     | __main__ | Dataset Split Summary
+2026-07-01 00:26:49 | INFO     | __main__ | ======================================================================
+2026-07-01 00:26:49 | INFO     | __main__ | total_records: 68874
+2026-07-01 00:26:49 | INFO     | __main__ | trainval_records: 41748
+2026-07-01 00:26:49 | INFO     | __main__ | test_records: 27126
+2026-07-01 00:26:49 | INFO     | __main__ | test_cutoff_year: 2019
+2026-07-01 00:26:49 | INFO     | __main__ | split_method: temporal
+2026-07-01 00:26:49 | INFO     | __main__ | walk_forward_note: Walk-forward CV folds are generated dynamically in src/evaluation/cross_validation.py over trainval_dataset.parquet
+2026-07-01 00:26:49 | INFO     | __main__ | trainval_ratio: 0.6062
+2026-07-01 00:26:49 | INFO     | __main__ | test_ratio: 0.3938
+2026-07-01 00:26:49 | INFO     | __main__ | ======================================================================
+2026-07-01 00:26:49 | INFO     | __main__ | Dataset splitting complete.
+2026-07-01 00:26:49 | INFO     | __main__ | ======================================================================

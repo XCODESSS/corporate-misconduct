@@ -68,22 +68,76 @@ class MdaTextCleaner:
 
     @staticmethod
     def clean_mda_text(value: Any) -> str:
+        """
+        Clean a single MD&A text value.
+
+        Operations
+        ----------
+        - Decode HTML entities
+        - Remove HTML/XML tags
+        - Normalize Unicode (NFKC)
+        - Remove control characters
+        - Collapse excessive whitespace
+
+        Returns
+        -------
+        Cleaned text. May be an empty string if the
+        original value is missing or contains only
+        removable content.
+        """
 
         if value is None:
             return ""
 
-        return str(value)
+        text = str(value)
+
+        if not text.strip():
+            return ""
+
+        # Decode HTML entities
+        text = html.unescape(text)
+
+        # Remove HTML/XML tags
+        text = HTML_TAG_RE.sub(" ", text)
+
+        # Normalize Unicode
+        text = unicodedata.normalize("NFKC", text)
+
+        # Remove control characters
+        text = MdaTextCleaner._remove_control_characters(text)
+
+        # Normalize line endings
+        text = re.sub(r"\r\n?", "\n", text)
+
+        # Collapse spaces and tabs
+        text = re.sub(r"[ \t]+", " ", text)
+
+        # Collapse excessive blank lines
+        text = re.sub(r"\n{3,}", "\n\n", text)
+
+        return text.strip()
 
     @staticmethod
     def _remove_control_characters(text: str) -> str:
         """
-        Replace Unicode control characters with spaces.
+        Remove Unicode control characters while
+        preserving newlines and tabs.
         """
 
-        return "".join(
-            " " if unicodedata.category(ch)[0] == "C" else ch
-            for ch in text
-        )
+        cleaned = []
+
+        for ch in text:
+
+            if ch in ("\n", "\t"):
+                cleaned.append(ch)
+                continue
+
+            if unicodedata.category(ch).startswith("C"):
+                continue
+
+            cleaned.append(ch)
+
+        return "".join(cleaned)
 
     # ============================================================
     # Record Processing
@@ -125,9 +179,9 @@ class MdaTextCleaner:
 
         frame = pd.DataFrame.from_records(batch)
 
-        object_cols = frame.columns[
-            frame.dtypes == "object"
-        ]
+        object_cols = frame.select_dtypes(
+        include=["object", "str"]
+        ).columns
 
         if len(object_cols) > 0:
             frame[object_cols] = (

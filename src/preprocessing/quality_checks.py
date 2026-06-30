@@ -34,14 +34,6 @@ import configs.settings as settings
 
 from src.utils.logger import get_logger
 
-
-
-f = pq.ParquetFile(r"D:\coperate-misconduct-warning\data\interim\cleaned\deduplicated_firm_years.parquet")
-batch = next(f.iter_batches(batch_size=5))
-
-rows = pa.Table.from_batches([batch]).to_pylist()
-for r in rows:
-    print(r.get("filing_type"), "|", r.get("filing_date"), "|", len((r.get("mda") or "").split()))
 logger = get_logger(__name__)
 
 
@@ -51,9 +43,9 @@ class QualityChecker:
     """
 
     INPUT_FILE = (
-        settings.INTERIM_CLEANED_DIR
-        / "deduplicated_firm_years.parquet"
-    )
+    settings.INTERIM_CLEANED_DIR
+    / "normalized_firm_years.parquet"
+ )
 
     OUTPUT_FILE = (
         settings.INTERIM_CLEANED_DIR
@@ -72,6 +64,16 @@ class QualityChecker:
         "10-K405/A",
         "10-KT/A",
     }
+    REFERENCE_PATTERNS = (
+    "incorporated herein by reference",
+    "incorporated by reference",
+    "management's review",
+    "management's discussion",
+    "annual report",
+    "appearing on pages",
+    "set forth on pages",
+    "exhibit 13",
+)
 
     def __init__(self) -> None:
 
@@ -81,6 +83,7 @@ class QualityChecker:
         self.short_mda_removed = 0
         self.amended_removed = 0
         self.pre1993_removed = 0
+        self.reference_only_removed = 0
 
     # ============================================================
     # Utility Functions
@@ -92,15 +95,41 @@ class QualityChecker:
         Count words in an MD&A section.
         """
 
-        if not text:
-            return 0
-
-        return len(
-            re.findall(
-                r"\b\w+\b",
-                text,
+        return (
+            0
+            if not text
+            else len(
+                re.findall(
+                    r"\b\w+\b",
+                    text,
+                )
             )
         )
+    @classmethod
+    def is_reference_only_mda(
+        cls,
+        text: str | None,
+    ) -> bool:
+        """
+        Detect filings that only reference the MD&A
+        instead of containing it.
+        """
+
+        if not text:
+            return False
+
+        text = text.lower()
+
+        # Only inspect very short MD&A sections.
+        if cls.word_count(text) >= cls.MIN_WORDS:
+            return False
+
+        matches = sum(
+            pattern in text
+            for pattern in cls.REFERENCE_PATTERNS
+        )
+
+        return matches >= 2
 
     @staticmethod
     def parse_year(
@@ -150,9 +179,17 @@ class QualityChecker:
 
         mda = record.get("mda", "")
 
-        if self.word_count(mda) < self.MIN_WORDS:
+        word_count = self.word_count(mda)
 
-            self.short_mda_removed += 1
+        if word_count < self.MIN_WORDS:
+
+            if self.is_reference_only_mda(mda):
+
+                self.reference_only_removed += 1
+
+            else:
+
+                self.short_mda_removed += 1
 
             keep = False
 
@@ -183,10 +220,7 @@ class QualityChecker:
     # Batch Processing
     # ============================================================
 
-    def process_batch(
-        self,
-        batch: pa.RecordBatch,
-    ) -> pa.Table:
+    def process_batch(self,batch: pa.RecordBatch,schema: pa.Schema | None = None,) -> pa.Table:
         """
         Apply quality filters to a single batch.
         """
@@ -204,14 +238,59 @@ class QualityChecker:
             self.rows_read += 1
 
             if not self.should_keep(record):
-
                 continue
 
             filtered_records.append(record)
-
             self.rows_written += 1
 
-        return pa.Table.from_pylist(filtered_records)
+        if not filtered_records:
+            return pa.table({}) if schema is None else pa.table(
+                {field.name: pa.array([], type=field.type) for field in schema}
+            )
+
+        import pandas as pd
+        frame = pd.DataFrame.from_records(filtered_records)
+
+        if schema is not None:
+            return pa.Table.from_pandas(
+                frame,
+                schema=schema,
+                preserve_index=False,
+            )
+
+        return pa.Table.from_pandas(
+            frame,
+            preserve_index=False,
+        )
+    #============================================================
+    #quality checker
+    #============================================================
+    @staticmethod
+    def build_schema() -> pa.Schema:
+        """
+        Define the explicit output schema.
+        Prevents null-type inference on sparse columns.
+        """
+
+        return pa.schema([
+            pa.field("cik",                 pa.string()),
+            pa.field("name",                pa.string()),
+            pa.field("city",                pa.string()),
+            pa.field("state",               pa.string()),
+            pa.field("sic",                 pa.string()),
+            pa.field("incorp_state",        pa.string()),
+            pa.field("filing_type",         pa.string()),
+            pa.field("fye",                 pa.string()),
+            pa.field("filing_date",         pa.string()),
+            pa.field("reporting_date",      pa.timestamp("us")),
+            pa.field("url",                 pa.string()),
+            pa.field("mda",                 pa.string()),
+            pa.field("fraudulent",          pa.int64()),
+            pa.field("matched_fraud_start", pa.timestamp("us")),
+            pa.field("matched_fraud_end",   pa.timestamp("us")),
+            pa.field("certainty_start",     pa.float64()),
+            pa.field("certainty_end",       pa.float64()),
+        ])
 
     # ============================================================
     # Pipeline
@@ -229,28 +308,20 @@ class QualityChecker:
         )
 
         logger.info(
-            "Reading deduplicated dataset..."
+            "Reading normalized dataset..."
         )
 
         parquet = pq.ParquetFile(
             self.INPUT_FILE
         )
 
-        writer = None
-
-        batch_number = 0
-
         try:
+            writer = None
+            schema = self.build_schema()
 
-            for batch in parquet.iter_batches(
-                batch_size=256
-            ):
+            for batch_number, batch in enumerate(parquet.iter_batches(batch_size=256), start=1):
 
-                batch_number += 1
-
-                table = self.process_batch(
-                    batch
-                )
+                table = self.process_batch(batch, schema)
 
                 if table.num_rows > 0:
 
@@ -258,20 +329,14 @@ class QualityChecker:
 
                         writer = pq.ParquetWriter(
                             where=self.OUTPUT_FILE,
-                            schema=table.schema,
+                            schema=schema,
                             compression="snappy",
                         )
 
-                    writer.write_table(
-                        table
-                    )
+                    writer.write_table(table)
 
                 logger.info(
-                    (
-                        "Batch %d | "
-                        "Read=%d | "
-                        "Written=%d"
-                    ),
+                    "Batch %d | Read=%d | Written=%d",
                     batch_number,
                     self.rows_read,
                     self.rows_written,
@@ -315,7 +380,7 @@ class QualityChecker:
         rows = 0
 
         for batch in parquet.iter_batches(
-            batch_size=512
+            batch_size=4096
         ):
 
             rows += batch.num_rows
@@ -427,6 +492,9 @@ class QualityChecker:
 
             "removed_pre1993":
                 self.pre1993_removed,
+            
+            "removed_reference_only_mda":
+                self.reference_only_removed,
 
             "minimum_word_count":
                 self.MIN_WORDS,
@@ -497,6 +565,8 @@ class QualityChecker:
             "total_removed":
                 self.rows_read
                 - self.rows_written,
+            "removed_reference_only":
+                self.reference_only_removed,
 
         }
 
