@@ -15717,3 +15717,153 @@
 2026-07-01 00:26:49 | INFO     | __main__ | ======================================================================
 2026-07-01 00:26:49 | INFO     | __main__ | Dataset splitting complete.
 2026-07-01 00:26:49 | INFO     | __main__ | ======================================================================
+2026-07-01 00:44:45 | INFO     | __main__ | ======================================================================
+2026-07-01 00:44:45 | INFO     | __main__ | Starting LM feature engineering...
+2026-07-01 00:44:45 | INFO     | __main__ | Reading trainval...
+2026-07-01 00:44:51 | INFO     | __main__ | Loaded 41748 trainval records.
+2026-07-01 00:44:51 | INFO     | __main__ | Reading test...
+2026-07-01 00:44:56 | INFO     | __main__ | Loaded 27126 test records.
+2026-07-01 00:44:56 | INFO     | __main__ | Reading Loughran-McDonald summaries...
+2026-07-01 00:47:19 | INFO     | __main__ | ======================================================================
+2026-07-01 00:47:19 | INFO     | __main__ | Starting LM feature engineering...
+2026-07-01 00:47:19 | INFO     | __main__ | Reading trainval...
+2026-07-01 00:47:25 | INFO     | __main__ | Loaded 41748 trainval records.
+2026-07-01 00:47:25 | INFO     | __main__ | Reading test...
+2026-07-01 00:47:29 | INFO     | __main__ | Loaded 27126 test records.
+2026-07-01 00:47:29 | INFO     | __main__ | Reading Loughran-McDonald summaries...
+2026-07-01 00:47:33 | INFO     | __main__ | Loaded 1249506 LM summary records.
+2026-07-01 00:47:33 | INFO     | __main__ | Engineering trainval features...
+2026-07-01 00:50:48 | INFO     | __main__ | ======================================================================
+2026-07-01 00:50:48 | INFO     | __main__ | Starting LM feature engineering...
+2026-07-01 00:50:48 | INFO     | __main__ | Reading trainval...
+2026-07-01 00:50:53 | INFO     | __main__ | Loaded 41748 trainval records.
+2026-07-01 00:50:53 | INFO     | __main__ | Reading test...
+2026-07-01 00:50:57 | INFO     | __main__ | Loaded 27126 test records.
+2026-07-01 00:50:57 | INFO     | __main__ | Reading Loughran-McDonald summaries...
+2026-07-01 00:50:59 | INFO     | __main__ | Loaded 1249506 LM summary records.
+2026-07-01 00:50:59 | INFO     | __main__ | Engineering trainval features...
+2026-07-01 00:52:28 | INFO     | __main__ | trainval: matched=177946 unmatched=598
+2026-07-01 00:52:32 | INFO     | __main__ | Engineering test features...
+2026-07-01 01:00:43 | INFO     | __main__ | ======================================================================
+2026-07-01 01:00:43 | INFO     | __main__ | Starting LM feature engineering...
+2026-07-01 01:00:43 | INFO     | __main__ | Reading datasets to build required key set...
+2026-07-01 01:00:43 | INFO     | __main__ | Reading trainval...
+2026-07-01 01:00:48 | INFO     | __main__ | Loaded 41748 trainval records.
+2026-07-01 01:00:49 | INFO     | __main__ | Reading test...
+2026-07-01 01:00:54 | INFO     | __main__ | Loaded 27126 test records.
+2026-07-01 01:00:54 | INFO     | __main__ | Unique required LM keys: 68287
+2026-07-01 01:00:54 | INFO     | __main__ | ======================================================================
+2026-07-01 01:00:54 | INFO     | __main__ | Building LM lookup...
+2026-07-01 01:00:54 | INFO     | __main__ | Streaming LM CSV in 100000-row chunks...
+2026-07-01 01:00:55 | INFO     | __main__ | Chunk 1 | Rows=100000 | Lookup=2040
+2026-07-01 01:00:56 | INFO     | __main__ | Chunk 2 | Rows=200000 | Lookup=3934
+2026-07-01 01:00:57 | INFO     | __main__ | Chunk 3 | Rows=300000 | Lookup=5191
+2026-07-01 01:00:57 | INFO     | __main__ | Chunk 4 | Rows=400000 | Lookup=7659
+2026-07-01 01:00:58 | INFO     | __main__ | Chunk 5 | Rows=500000 | Lookup=10403
+2026-07-01 01:00:59 | INFO     | __main__ | Chunk 6 | Rows=600000 | Lookup=13472
+2026-07-01 01:00:59 | INFO     | __main__ | Chunk 7 | Rows=700000 | Lookup=17125
+2026-07-01 01:01:00 | INFO     | __main__ | Chunk 8 | Rows=800000 | Lookup=23459
+2026-07-01 01:01:01 | INFO     | __main__ | Chunk 9 | Rows=900000 | Lookup=28690
+2026-07-01 01:01:02 | INFO     | __main__ | Chunk 10 | Rows=1000000 | Lookup=36996
+2026-07-01 01:01:02 | INFO     | __main__ | Chunk 11 | Rows=1100000 | Lookup=49852
+2026-07-01 01:01:03 | INFO     | __main__ | Chunk 12 | Rows=1200000 | Lookup=63670
+2026-07-01 01:01:04 | INFO     | __main__ | Chunk 13 | Rows=1249506 | Lookup=67216
+2026-07-01 01:01:04 | INFO     | __main__ | ======================================================================
+2026-07-01 01:01:04 | INFO     | __main__ | LM lookup complete.
+2026-07-01 01:01:04 | INFO     | __main__ | LM rows scanned: 1249506
+2026-07-01 01:01:04 | INFO     | __main__ | Lookup entries: 67216
+2026-07-01 01:01:04 | INFO     | __main__ | Matched LM rows: 67216
+2026-07-01 01:01:04 | INFO     | __main__ | ======================================================================
+2026-07-01 01:01:04 | INFO     | __main__ | ======================================================================
+2026-07-01 01:01:04 | INFO     | __main__ | Processing trainval dataset...
+2026-07-01 01:01:04 | INFO     | __main__ | Reading trainval...
+2026-07-01 01:01:09 | INFO     | __main__ | Loaded 41748 trainval records.
+2026-07-01 01:01:09 | INFO     | __main__ | Attaching LM features to trainval...
+2026-07-01 01:01:11 | INFO     | __main__ | trainval | matched=41150 unmatched=598
+2026-07-01 01:01:11 | INFO     | __main__ | Writing trainval_features.parquet...
+2026-07-01 01:01:22 | INFO     | __main__ | Saved 41748 rows.
+2026-07-01 01:01:22 | INFO     | __main__ | trainval dataset complete.
+2026-07-01 01:01:22 | INFO     | __main__ | ======================================================================
+2026-07-01 01:01:22 | INFO     | __main__ | Processing test dataset...
+2026-07-01 01:01:22 | INFO     | __main__ | Reading test...
+2026-07-01 01:01:25 | INFO     | __main__ | Loaded 27126 test records.
+2026-07-01 01:01:25 | INFO     | __main__ | Attaching LM features to test...
+2026-07-01 01:01:27 | INFO     | __main__ | test | matched=26652 unmatched=474
+2026-07-01 01:01:27 | INFO     | __main__ | Writing test_features.parquet...
+2026-07-01 01:01:32 | INFO     | __main__ | Saved 27126 rows.
+2026-07-01 01:01:33 | INFO     | __main__ | test dataset complete.
+2026-07-01 01:01:33 | INFO     | __main__ | Writing feature report...
+2026-07-01 01:01:33 | INFO     | __main__ | ======================================================================
+2026-07-01 01:01:33 | INFO     | __main__ | LM Feature Engineering Summary
+2026-07-01 01:01:33 | INFO     | __main__ | ======================================================================
+2026-07-01 01:01:33 | INFO     | __main__ | train_records: 41748
+2026-07-01 01:01:33 | INFO     | __main__ | train_matched: 41150
+2026-07-01 01:01:33 | INFO     | __main__ | train_unmatched: 598
+2026-07-01 01:01:33 | INFO     | __main__ | train_match_rate: 0.9857
+2026-07-01 01:01:33 | INFO     | __main__ | test_records: 27126
+2026-07-01 01:01:33 | INFO     | __main__ | test_matched: 26652
+2026-07-01 01:01:33 | INFO     | __main__ | test_unmatched: 474
+2026-07-01 01:01:33 | INFO     | __main__ | test_match_rate: 0.9825
+2026-07-01 01:01:33 | INFO     | __main__ | ======================================================================
+2026-07-01 01:01:33 | INFO     | __main__ | LM feature engineering completed successfully.
+2026-07-01 01:01:33 | INFO     | __main__ | ======================================================================
+2026-07-01 01:27:43 | INFO     | __main__ | ======================================================================
+2026-07-01 01:27:43 | INFO     | __main__ | Loading feature-engineered dataset...
+2026-07-01 01:28:00 | INFO     | __main__ | Total observations : 41748
+2026-07-01 01:28:00 | INFO     | __main__ | Fraud observations : 1110
+2026-07-01 01:28:00 | INFO     | __main__ | Clean observations : 40638
+2026-07-01 01:28:00 | INFO     | __main__ | ======================================================================
+2026-07-01 01:28:00 | INFO     | __main__ | Feature Summary
+2026-07-01 01:28:00 | INFO     | __main__ | ======================================================================
+2026-07-01 01:28:00 | INFO     | __main__ | Total observations : 41748
+2026-07-01 01:28:00 | INFO     | __main__ | Fraud observations : 1110
+2026-07-01 01:28:00 | INFO     | __main__ | Clean observations : 40638
+2026-07-01 01:28:00 | INFO     | __main__ | Features analysed : 7
+2026-07-01 01:28:00 | INFO     | __main__ | ======================================================================
+2026-07-01 01:28:00 | INFO     | __main__ | Computing descriptive statistics...
+2026-07-01 01:29:03 | INFO     | __main__ | ======================================================================
+2026-07-01 01:29:03 | INFO     | __main__ | Loading feature-engineered dataset...
+2026-07-01 01:29:15 | INFO     | __main__ | Total observations : 41748
+2026-07-01 01:29:15 | INFO     | __main__ | Fraud observations : 1110
+2026-07-01 01:29:15 | INFO     | __main__ | Clean observations : 40638
+2026-07-01 01:29:15 | INFO     | __main__ | ======================================================================
+2026-07-01 01:29:15 | INFO     | __main__ | Feature Summary
+2026-07-01 01:29:15 | INFO     | __main__ | ======================================================================
+2026-07-01 01:29:15 | INFO     | __main__ | Total observations : 41748
+2026-07-01 01:29:15 | INFO     | __main__ | Fraud observations : 1110
+2026-07-01 01:29:15 | INFO     | __main__ | Clean observations : 40638
+2026-07-01 01:29:15 | INFO     | __main__ | Features analysed : 7
+2026-07-01 01:29:15 | INFO     | __main__ | ======================================================================
+2026-07-01 01:29:15 | INFO     | __main__ | Computing descriptive statistics...
+2026-07-01 01:29:15 | INFO     | __main__ | Descriptive statistics written.
+2026-07-01 01:29:15 | INFO     | __main__ | Computing correlation matrix...
+2026-07-01 01:29:16 | INFO     | __main__ | Correlation matrix saved.
+2026-07-01 01:29:16 | INFO     | __main__ | Computing variance inflation factors...
+2026-07-01 01:29:16 | INFO     | __main__ | VIF analysis saved.
+2026-07-01 01:29:16 | INFO     | __main__ | Performing hypothesis tests...
+2026-07-01 01:29:16 | INFO     | __main__ | Hypothesis testing complete.
+2026-07-01 01:29:16 | INFO     | __main__ | Writing statistical report...
+2026-07-01 01:29:16 | INFO     | __main__ | Statistical report written.
+2026-07-01 01:35:33 | INFO     | __main__ | ======================================================================
+2026-07-01 01:35:33 | INFO     | __main__ | Loading feature-engineered dataset...
+2026-07-01 01:35:46 | INFO     | __main__ | Total observations : 41748
+2026-07-01 01:35:46 | INFO     | __main__ | Fraud observations : 1110
+2026-07-01 01:35:46 | INFO     | __main__ | Clean observations : 40638
+2026-07-01 01:35:46 | INFO     | __main__ | ======================================================================
+2026-07-01 01:35:46 | INFO     | __main__ | Feature Summary
+2026-07-01 01:35:46 | INFO     | __main__ | ======================================================================
+2026-07-01 01:35:46 | INFO     | __main__ | Total observations : 41748
+2026-07-01 01:35:46 | INFO     | __main__ | Fraud observations : 1110
+2026-07-01 01:35:46 | INFO     | __main__ | Clean observations : 40638
+2026-07-01 01:35:46 | INFO     | __main__ | Features analysed : 7
+2026-07-01 01:35:46 | INFO     | __main__ | ======================================================================
+2026-07-01 01:35:46 | INFO     | __main__ | Computing descriptive statistics...
+2026-07-01 01:35:46 | INFO     | __main__ | Descriptive statistics written.
+2026-07-01 01:35:46 | INFO     | __main__ | Computing correlation matrix...
+2026-07-01 01:35:46 | INFO     | __main__ | Correlation matrix saved.
+2026-07-01 01:35:46 | INFO     | __main__ | Computing variance inflation factors...
+2026-07-01 01:35:46 | INFO     | __main__ | VIF analysis saved.
+2026-07-01 01:35:46 | INFO     | __main__ | Performing hypothesis tests...
+2026-07-01 01:35:47 | INFO     | __main__ | Hypothesis testing complete.
+2026-07-01 01:35:47 | INFO     | __main__ | Writing statistical report...
+2026-07-01 01:35:47 | INFO     | __main__ | Statistical report written.
