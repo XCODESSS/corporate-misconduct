@@ -1,4 +1,4 @@
-﻿"""
+"""
 Walk-forward cross-validation engine.
 
 Responsibilities
@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 import numpy as np
 import pandas as pd
@@ -86,7 +86,7 @@ class WalkForwardCV:
         self,
         years: np.ndarray,
         y: np.ndarray,
-    ):
+    ) -> Iterator[tuple[np.ndarray, np.ndarray, int]]:
         """
         Yield (train_idx, test_idx, test_year) tuples.
 
@@ -95,12 +95,16 @@ class WalkForwardCV:
         Skip       : test folds with fraud_count < min_fraud_per_fold
         """
 
+        if len(years) != len(y):
+            raise ValueError(
+                "years and y must have the same length."
+            )
+
         unique_years = sorted(np.unique(years))
 
         for test_year in unique_years:
-
             train_idx = np.where(years < test_year)[0]
-            test_idx  = np.where(years == test_year)[0]
+            test_idx = np.where(years == test_year)[0]
 
             if len(train_idx) == 0 or len(test_idx) == 0:
                 continue
@@ -125,34 +129,27 @@ class WalkForwardCV:
             )
 
             yield train_idx, test_idx, test_year
-    
+
     def find_best_threshold(
         self,
         y_true: np.ndarray,
         y_score: np.ndarray,
+        default_threshold: float = 0.5,
     ) -> float:
         """
         Find the threshold that maximizes F1 score.
-        Returns
-        -------
-        float
-            Optimal decision threshold.
         """
 
-        thresholds = np.arange(
-            0.01,
-            1.00,
-            0.01,
-        )
+        if len(np.unique(y_true)) < 2:
+            return default_threshold
 
-        best_threshold = 0.050
+        thresholds = np.arange(0.01, 1.00, 0.01)
+
+        best_threshold = default_threshold
         best_f1 = -1.0
 
         for threshold in thresholds:
-
-            y_pred = (
-                y_score >= threshold
-            ).astype(int)
+            y_pred = (y_score >= threshold).astype(int)
 
             score = f1_score(
                 y_true,
@@ -161,11 +158,11 @@ class WalkForwardCV:
             )
 
             if score > best_f1:
-
                 best_f1 = score
                 best_threshold = threshold
 
         return best_threshold
+
     # ============================================================
     # Fold Evaluation
     # ============================================================
@@ -188,48 +185,35 @@ class WalkForwardCV:
 
         import sklearn.base as skbase
 
-        # Clone to avoid state leakage between folds
         model = skbase.clone(estimator)
 
         X_train, y_train = X[train_idx], y[train_idx]
-        X_test,  y_test  = X[test_idx],  y[test_idx]
+        X_test, y_test = X[test_idx], y[test_idx]
+
+        if len(np.unique(y_train)) < 2:
+            logger.warning(
+                "Skipping year=%d because training fold has only one class.",
+                test_year,
+            )
+            return {}
 
         model.fit(X_train, y_train)
 
-        # ---------- TRAINING PROBABILITIES ----------
-
         if hasattr(model, "predict_proba"):
-
-            train_score = model.predict_proba(
-                X_train
-            )[:, 1]
-
-            test_score = model.predict_proba(
-                X_test
-            )[:, 1]
-
+            train_score = model.predict_proba(X_train)[:, 1]
+            test_score = model.predict_proba(X_test)[:, 1]
         elif hasattr(model, "decision_function"):
-
-            train_score = model.decision_function(
-                X_train
-            )
-
-            test_score = model.decision_function(
-                X_test
-            )
-
+            train_score = model.decision_function(X_train)
+            test_score = model.decision_function(X_test)
         else:
-
             raise AttributeError(
-                "Estimator must implement predict_proba() "
-                "or decision_function()."
+                "Estimator must implement predict_proba() or decision_function()."
             )
-        
-        # ---------- AUTOMATIC THRESHOLD ----------
-        
+
         best_threshold = self.find_best_threshold(
             y_train,
             train_score,
+            default_threshold=decision_threshold,
         )
 
         logger.info(
@@ -238,20 +222,25 @@ class WalkForwardCV:
             best_threshold,
         )
 
-        y_pred = (
-            test_score >= best_threshold
-        ).astype(int)
-
+        y_pred = (test_score >= best_threshold).astype(int)
         y_score = test_score
 
-        roc_auc  = roc_auc_score(y_test, y_score)
-        pr_auc   = average_precision_score(y_test, y_score)
-        f1       = f1_score(y_test, y_pred, zero_division=0)
-        prec     = precision_score(y_test, y_pred, zero_division=0)
-        rec      = recall_score(y_test, y_pred, zero_division=0)
-        mcc      = matthews_corrcoef(y_test, y_pred)
-        bal_acc  = balanced_accuracy_score(y_test, y_pred)
-        brier    = brier_score_loss(y_test, y_score)
+        try:
+            roc_auc = roc_auc_score(y_test, y_score)
+        except ValueError:
+            roc_auc = float("nan")
+
+        try:
+            pr_auc = average_precision_score(y_test, y_score)
+        except ValueError:
+            pr_auc = float("nan")
+
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+        prec = precision_score(y_test, y_pred, zero_division=0)
+        rec = recall_score(y_test, y_pred, zero_division=0)
+        mcc = matthews_corrcoef(y_test, y_pred)
+        bal_acc = balanced_accuracy_score(y_test, y_pred)
+        brier = brier_score_loss(y_test, y_score)
 
         prediction_df = pd.DataFrame(
             {
@@ -259,6 +248,7 @@ class WalkForwardCV:
                 "true_label": y_test,
                 "predicted_probability": y_score,
                 "predicted_label": y_pred,
+                "decision_threshold": best_threshold,
             }
         )
 
@@ -269,6 +259,7 @@ class WalkForwardCV:
             "train_n": len(train_idx),
             "test_n": len(test_idx),
             "test_fraud_n": int(y_test.sum()),
+            "decision_threshold": best_threshold,
             "roc_auc": roc_auc,
             "pr_auc": pr_auc,
             "f1": f1,
@@ -289,6 +280,7 @@ class WalkForwardCV:
         """
 
         if not self.fold_results:
+            logger.warning("No fold results available.")
             return {}
 
         df = pd.DataFrame(self.fold_results)
@@ -303,12 +295,14 @@ class WalkForwardCV:
             "n_folds": len(df),
             "years_evaluated": df["test_year"].tolist(),
             "total_test_fraud": int(df["test_fraud_n"].sum()),
+            "decision_threshold_mean": round(float(df["decision_threshold"].mean()), 6),
+            "decision_threshold_std": round(float(df["decision_threshold"].std(ddof=0)), 6),
         }
 
         for col in metric_cols:
             summary[col] = {
                 "mean": round(float(df[col].mean()), 6),
-                "std":  round(float(df[col].std()),  6),
+                "std": round(float(df[col].std(ddof=0)), 6),
             }
 
         return summary
@@ -343,20 +337,25 @@ class WalkForwardCV:
             / f"{model_name}_predictions.csv"
         )
 
-        prediction_df = pd.concat(
-            self.fold_predictions,
-            ignore_index=True,
-        )
+        if self.fold_predictions:
+            prediction_df = pd.concat(
+                self.fold_predictions,
+                ignore_index=True,
+            )
+            prediction_df.to_csv(
+                prediction_path,
+                index=False,
+            )
 
-        prediction_df.to_csv(
-            prediction_path,
-            index=False,
-        )
-
-        logger.info(
-            "Fold predictions saved to %s",
-            prediction_path,
-        )
+            logger.info(
+                "Fold predictions saved to %s",
+                prediction_path,
+            )
+        else:
+            logger.warning(
+                "No fold predictions to save for %s",
+                model_name,
+            )
 
         summary = self.aggregate_metrics()
         summary_path = self.output_dir / f"{model_name}_cv_summary.json"
@@ -377,7 +376,6 @@ class WalkForwardCV:
         model_name="model",
         decision_threshold: float = 0.5,
     ) -> dict[str, Any]:
-    
         """
         Run walk-forward cross-validation.
 
@@ -412,7 +410,6 @@ class WalkForwardCV:
         self.fold_predictions = []
 
         for train_idx, test_idx, test_year in self.generate_folds(years, y):
-
             fold_metrics = self.evaluate_fold(
                 estimator=estimator,
                 X=X,
@@ -422,6 +419,9 @@ class WalkForwardCV:
                 test_year=test_year,
                 decision_threshold=decision_threshold,
             )
+
+            if not fold_metrics:
+                continue
 
             self.fold_results.append(fold_metrics)
 
