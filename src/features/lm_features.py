@@ -185,16 +185,17 @@ class LMFeatureEngineer:
             df["reporting_date"]
         )
 
-        missing = df["filing_year"].isna().sum()
-
-        if missing:
-
+        if missing := df["filing_year"].isna().sum():
             raise ValueError(
                 f"{missing} rows have invalid reporting_date."
             )
 
-        return df
+        df["filing_year"] = (
+            df["filing_year"]
+            .astype(np.int32)
+        )
 
+        return df
     # ============================================================
     # Required Lookup Keys
     # ============================================================
@@ -234,7 +235,8 @@ class LMFeatureEngineer:
         )
 
         return keys
-        # ============================================================
+    
+    # ============================================================
     # Build LM Lookup (Streaming)
     # ============================================================
 
@@ -259,17 +261,15 @@ class LMFeatureEngineer:
 
         total_rows = 0
         matched_rows = 0
-        chunk_number = 0
-
-        for chunk in pd.read_csv(
+        duplicate_keys = 0
+        for chunk_number, chunk in enumerate(pd.read_csv(
             self.LM_SUMMARY_FILE,
             usecols=self.LM_COLUMNS,
             dtype={"CIK": str},
             chunksize=self.CHUNK_SIZE,
             low_memory=False,
-        ):
+        ), start=1):
 
-            chunk_number += 1
             total_rows += len(chunk)
 
             chunk["cik"] = self.normalize_cik(
@@ -303,6 +303,7 @@ class LMFeatureEngineer:
 
                 # Keep only the first occurrence.
                 if key in lookup:
+                    duplicate_keys += 1
                     continue
 
                 lookup[key] = (
@@ -330,7 +331,8 @@ class LMFeatureEngineer:
             )
 
             del chunk
-            gc.collect()
+            if chunk_number % 5 == 0:
+                gc.collect()
 
         logger.info("=" * 70)
         logger.info(
@@ -347,6 +349,11 @@ class LMFeatureEngineer:
         logger.info(
             "Matched LM rows: %d",
             matched_rows,
+        )
+
+        logger.info(
+            "Duplicate LM keys skipped: %d",
+            duplicate_keys,
         )
         logger.info("=" * 70)
 
@@ -426,55 +433,22 @@ class LMFeatureEngineer:
             .replace(0, np.nan)
         )
 
-        df["negative_density"] = (
-            df["N_Negative"]
-            / denominator
-        )
+        density_mapping = {
+            "N_Negative": "negative_density",
+            "N_Positive": "positive_density",
+            "N_Uncertainty": "uncertainty_density",
+            "N_Litigious": "litigious_density",
+            "N_StrongModal": "strong_modal_density",
+            "N_WeakModal": "weak_modal_density",
+            "N_Constraining": "constraining_density",
+        }
 
-        df["positive_density"] = (
-            df["N_Positive"]
-            / denominator
-        )
+        for source_column, density_column in density_mapping.items():
 
-        df["uncertainty_density"] = (
-            df["N_Uncertainty"]
-            / denominator
-        )
-
-        df["litigious_density"] = (
-            df["N_Litigious"]
-            / denominator
-        )
-
-        df["strong_modal_density"] = (
-            df["N_StrongModal"]
-            / denominator
-        )
-
-        df["weak_modal_density"] = (
-            df["N_WeakModal"]
-            / denominator
-        )
-
-        df["constraining_density"] = (
-            df["N_Constraining"]
-            / denominator
-        )
-
-        density_columns = [
-            "negative_density",
-            "positive_density",
-            "uncertainty_density",
-            "litigious_density",
-            "strong_modal_density",
-            "weak_modal_density",
-            "constraining_density",
-        ]
-
-        df[density_columns] = (
-            df[density_columns]
-            .fillna(0.0)
-        )
+            df[density_column] = (
+                df[source_column]
+                / denominator
+            )
 
         total = len(df)
         unmatched = total - matched

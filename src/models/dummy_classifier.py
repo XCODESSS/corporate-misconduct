@@ -1,11 +1,11 @@
-﻿"""
-Logistic Regression baseline.
+"""
+Dummy classifier baseline.
 
 Responsibilities
 ----------------
 - Load the development feature dataset.
 - Prepare feature matrix, target and filing years.
-- Train a Logistic Regression classifier.
+- Train a DummyClassifier baseline.
 - Evaluate using WalkForwardCV.
 - Save cross-validation reports.
 
@@ -26,9 +26,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.dummy import DummyClassifier
 
 import configs.settings as settings
 
@@ -38,9 +36,9 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-class LogisticRegressionBaseline:
+class DummyBaseline:
     """
-    Train and evaluate a Logistic Regression model
+    Train and evaluate a DummyClassifier baseline
     using walk-forward cross-validation.
     """
 
@@ -49,7 +47,7 @@ class LogisticRegressionBaseline:
         / "trainval_features.parquet"
     )
 
-    MODEL_NAME = "logistic_regression"
+    MODEL_NAME = "dummy_classifier"
 
     FEATURE_COLUMNS = [
         "negative_density",
@@ -70,8 +68,6 @@ class LogisticRegressionBaseline:
         "RANDOM_STATE",
         42,
     )
-
-    DECISION_THRESHOLD = 0.05
 
     def __init__(
         self,
@@ -98,13 +94,9 @@ class LogisticRegressionBaseline:
         """
 
         logger.info("=" * 70)
-        logger.info(
-            "Loading development feature dataset..."
-        )
+        logger.info("Loading development feature dataset...")
 
-        table = pq.read_table(
-            self.INPUT_FILE
-        )
+        table = pq.read_table(self.INPUT_FILE)
 
         df = table.to_pandas()
 
@@ -127,7 +119,7 @@ class LogisticRegressionBaseline:
         df: pd.DataFrame,
     ) -> None:
         """
-        Ensure all required columns exist.
+        Ensure all required columns are present.
         """
 
         required_columns = (
@@ -138,12 +130,7 @@ class LogisticRegressionBaseline:
             ]
         )
 
-        if missing := [
-            column
-            for column in required_columns
-            if column not in df.columns
-        ]:
-
+        if missing := [col for col in required_columns if col not in df.columns]:
             raise ValueError(
                 "Dataset missing required columns:\n"
                 + "\n".join(missing)
@@ -187,19 +174,15 @@ class LogisticRegressionBaseline:
                 missing_before,
             )
 
-        feature_frame = (
-            feature_frame
-            .fillna(0.0)
-        )
+        feature_frame = feature_frame.fillna(0.0)
 
-        self.X = (
-            feature_frame
-            .to_numpy(dtype=np.float64)
+        self.X = feature_frame.to_numpy(
+            dtype=np.float64
         )
 
         self.y = (
             df[self.TARGET_COLUMN]
-            .astype(np.int64)
+            .astype(int)
             .to_numpy()
         )
 
@@ -207,12 +190,6 @@ class LogisticRegressionBaseline:
             df[self.YEAR_COLUMN]
             .astype(np.int32)
             .to_numpy()
-        )
-
-        logger.info(
-            "Prepared X=%s y=%s",
-            self.X.shape,
-            self.y.shape,
         )
 
         logger.info(
@@ -225,75 +202,55 @@ class LogisticRegressionBaseline:
             self.years.min(),
             self.years.max(),
         )
-        # ============================================================
+        logger.info(
+            "Prepared X=%s y=%s",
+            self.X.shape,
+            self.y.shape,
+        )
+    
+    # ============================================================
     # Model
     # ============================================================
 
     def build_model(
         self,
-    ) -> Pipeline:
+    ) -> DummyClassifier:
         """
-        Build the Logistic Regression pipeline.
+        Create the DummyClassifier baseline.
 
-        Standardization is performed inside the pipeline
-        to prevent data leakage during walk-forward
-        cross-validation.
+        Strategy
+        --------
+        Uses the empirical class prior so predicted
+        probabilities reflect the observed fraud rate.
         """
 
         logger.info(
-            "Building Logistic Regression model..."
+            "Building DummyClassifier..."
         )
 
-        model = Pipeline(
-
-            steps=[
-
-                (
-                    "scaler",
-                    StandardScaler(),
-                ),
-
-                (
-                    "classifier",
-                    LogisticRegression(
-                        C=1.0,
-                        solver="lbfgs",
-                        class_weight=None,
-                        max_iter=1000,
-                        random_state=self.RANDOM_STATE,
-                    ),
-                ),
-            ]
+        model = DummyClassifier(
+            strategy="prior",
+            random_state=self.RANDOM_STATE,
         )
 
         logger.info(
-            "Pipeline:"
-        )
-
-        logger.info(
-            "  StandardScaler"
-        )
-
-        logger.info(
-            "  LogisticRegression("
-            "penalty=l2, "
-            "solver=liblinear, "
-            "class_weight=balanced)"
+            "Strategy: prior | random_state=%d",
+            self.RANDOM_STATE,
         )
 
         return model
 
     # ============================================================
-    # Cross Validation
+    # Cross-Validation
     # ============================================================
 
     def run_cross_validation(
         self,
-        model: Pipeline,
+        model: DummyClassifier,
     ) -> dict[str, Any]:
         """
-        Evaluate the Logistic Regression model
-        using WalkForwardCV.
+        Evaluate the baseline model using the
+        WalkForwardCV engine.
         """
 
         logger.info("=" * 70)
@@ -320,7 +277,7 @@ class LogisticRegressionBaseline:
             y=self.y,
             years=self.years,
             model_name=self.MODEL_NAME,
-            decision_threshold=self.DECISION_THRESHOLD,
+            decision_threshold=0.5,
         )
 
         self.cv_summary = summary
@@ -349,7 +306,12 @@ class LogisticRegressionBaseline:
             )
             return
 
-        self._extracted_from_run_15("Logistic Regression Summary")
+        logger.info("=" * 70)
+        logger.info(
+            "Dummy Classifier Summary"
+        )
+        logger.info("=" * 70)
+
         logger.info(
             "Folds Evaluated : %d",
             self.cv_summary.get(
@@ -371,14 +333,6 @@ class LogisticRegressionBaseline:
             self.y.mean() * 100,
         )
 
-        logger.info(
-            "Total Fraud Cases : %d",
-            self.cv_summary.get(
-                "total_test_fraud",
-                0,
-            ),
-        )
-
         metric_names = [
             "roc_auc",
             "pr_auc",
@@ -396,7 +350,6 @@ class LogisticRegressionBaseline:
                 metric,
                 {},
             ):
-
                 logger.info(
                     "%-15s mean=%8.4f   std=%8.4f",
                     metric,
@@ -411,7 +364,7 @@ class LogisticRegressionBaseline:
 
     def run(self) -> dict[str, Any]:
         """
-        Execute the complete Logistic Regression pipeline.
+        Execute the complete DummyClassifier pipeline.
 
         Returns
         -------
@@ -419,7 +372,10 @@ class LogisticRegressionBaseline:
             Cross-validation summary metrics.
         """
 
-        self._extracted_from_run_15("Starting Logistic Regression...")
+        logger.info("=" * 70)
+        logger.info("Starting DummyClassifier baseline...")
+        logger.info("=" * 70)
+
         # --------------------------------------------------------
         # Load Dataset
         # --------------------------------------------------------
@@ -448,9 +404,7 @@ class LogisticRegressionBaseline:
         # Evaluate
         # --------------------------------------------------------
 
-        summary = self.run_cross_validation(
-            model
-        )
+        summary = self.run_cross_validation(model)
 
         # --------------------------------------------------------
         # Summary
@@ -458,36 +412,27 @@ class LogisticRegressionBaseline:
 
         self.log_summary()
 
-        logger.info(
-            "Logistic Regression completed successfully."
-        )
-
+        logger.info("DummyClassifier baseline completed successfully.")
         logger.info("=" * 70)
 
         return summary
-
-    # TODO Rename this here and in `log_summary` and `run`
-    def _extracted_from_run_15(self, arg0):
-        logger.info("=" * 70)
-        logger.info(arg0)
-        logger.info("=" * 70)
 
 
 # ============================================================
 # Public API
 # ============================================================
 
-def run_logistic_regression() -> dict[str, Any]:
+def run_dummy_classifier() -> dict[str, Any]:
     """
-    Train and evaluate the Logistic Regression model.
+    Train and evaluate the DummyClassifier baseline.
 
     Returns
     -------
     dict
-        Cross-validation summary metrics.
+        Cross-validation summary.
     """
 
-    return LogisticRegressionBaseline().run()
+    return DummyBaseline().run()
 
 
 def main() -> None:
@@ -495,9 +440,8 @@ def main() -> None:
     Script entry point.
     """
 
-    run_logistic_regression()
+    run_dummy_classifier()
 
 
 if __name__ == "__main__":
-
     main()
