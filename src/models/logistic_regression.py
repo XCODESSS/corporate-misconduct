@@ -21,12 +21,16 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import json
+import optuna
 
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import average_precision_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -48,8 +52,24 @@ class LogisticRegressionBaseline:
         settings.FEATURES_DIR
         / "trainval_features.parquet"
     )
-
     MODEL_NAME = "logistic_regression"
+
+    OPTUNA_TRIALS = 200
+
+    OPTUNA_STORAGE = (
+        settings.REPORTS_DIR
+        / "logistic_regression_optuna.db"
+    )
+
+    BEST_PARAMS_FILE = (
+        settings.REPORTS_DIR
+        / "logistic_regression_best_params.json"
+    )
+
+    TRIALS_FILE = (
+        settings.REPORTS_DIR
+        / "logistic_regression_trials.csv"
+    )
 
     FEATURE_COLUMNS = [
         "negative_density",
@@ -87,6 +107,8 @@ class LogisticRegressionBaseline:
         self.years: np.ndarray | None = None
 
         self.cv_summary: dict[str, Any] = {}
+        self.study: optuna.study.Study | None = None
+        self.best_params: dict[str, Any] = {}
 
     # ============================================================
     # Dataset Loading
@@ -225,12 +247,14 @@ class LogisticRegressionBaseline:
             self.years.min(),
             self.years.max(),
         )
-        # ============================================================
+    
+    # ============================================================
     # Model
     # ============================================================
 
     def build_model(
         self,
+        trial: optuna.Trial | None = None,
     ) -> Pipeline:
         """
         Build the Logistic Regression pipeline.
@@ -256,10 +280,54 @@ class LogisticRegressionBaseline:
                 (
                     "classifier",
                     LogisticRegression(
-                        C=1.0,
-                        solver="lbfgs",
-                        class_weight=None,
-                        max_iter=1000,
+
+                        C=(
+                            trial.suggest_float(
+                                "C",
+                                1e-4,
+                                100.0,
+                                log=True,
+                            )
+                            if trial
+                            else 1.0
+                        ),
+
+                        solver=(
+                            trial.suggest_categorical(
+                                "solver",
+                                [
+                                    "lbfgs",
+                                    "liblinear",
+                                    "saga",
+                                ],
+                            )
+                            if trial
+                            else "lbfgs"
+                        ),
+
+                        class_weight=(
+                            trial.suggest_categorical(
+                                "class_weight",
+                                [
+                                    None,
+                                    "balanced",
+                                ],
+                            )
+                            if trial
+                            else None
+                        ),
+
+                        max_iter=(
+                            trial.suggest_int(
+                                "max_iter",
+                                500,
+                                3000,
+                                step=250,
+                            )
+                            if trial
+                            else 1000
+                        ),
+
                         random_state=self.RANDOM_STATE,
                     ),
                 ),
@@ -274,11 +342,11 @@ class LogisticRegressionBaseline:
             "  StandardScaler"
         )
 
+        classifier = model.named_steps["classifier"]
+
         logger.info(
-            "  LogisticRegression("
-            "penalty=l2, "
-            "solver=liblinear, "
-            "class_weight=balanced)"
+            "  LogisticRegression(%s)",
+            classifier.get_params(),
         )
 
         return model
@@ -322,6 +390,7 @@ class LogisticRegressionBaseline:
             model_name=self.MODEL_NAME,
             decision_threshold=self.DECISION_THRESHOLD,
         )
+        
 
         self.cv_summary = summary
 
@@ -330,6 +399,138 @@ class LogisticRegressionBaseline:
         )
 
         return summary
+    # ============================================================
+    # Optuna
+    # ============================================================
+    def objective(
+        self,
+        trial: optuna.Trial,
+    ) -> float:
+        """
+        Objective function for Optuna.
+        """
+
+        model = self.build_model(
+            trial=trial,
+        )
+
+        summary = self.run_cross_validation(
+            model
+        )
+
+        score = summary["pr_auc"]["mean"]
+
+        trial.set_user_attr(
+            "roc_auc",
+            summary["roc_auc"]["mean"],
+        )
+
+        trial.set_user_attr(
+            "f1",
+            summary["f1"]["mean"],
+        )
+
+        trial.set_user_attr(
+            "mcc",
+            summary["mcc"]["mean"],
+        )
+
+        trial.set_user_attr(
+            "balanced_acc",
+            summary["balanced_acc"]["mean"],
+        )
+
+        return score
+    
+    def optimize(
+        self,
+    ) -> None:
+        """
+        Optimize Logistic Regression hyperparameters
+        using Optuna.
+        """
+
+        logger.info("=" * 70)
+        logger.info(
+            "Starting Optuna optimization..."
+        )
+        logger.info("=" * 70)
+
+        self.study = optuna.create_study(
+            study_name="logistic_regression",
+            direction="maximize",
+            storage=f"sqlite:///{self.OPTUNA_STORAGE}",
+            load_if_exists=True,
+        )
+
+        self.study.optimize(
+            self.objective,
+            n_trials=self.OPTUNA_TRIALS,
+            show_progress_bar=True,
+        )
+
+        self.best_params = dict(
+            self.study.best_trial.params
+        )
+
+        logger.info(
+            "Best PR-AUC : %.6f",
+            self.study.best_value,
+        )
+
+        logger.info(
+            "Best Parameters:"
+        )
+
+        for key, value in self.best_params.items():
+
+            logger.info(
+                "%s = %s",
+                key,
+                value,
+            )
+
+        with open(
+            self.BEST_PARAMS_FILE,
+            "w",
+            encoding="utf-8",
+        ) as f:
+
+            json.dump(
+                self.best_params,
+                f,
+                indent=4,
+            )
+
+        trials = self.study.trials_dataframe(
+            attrs=(
+                "number",
+                "value",
+                "params",
+                "user_attrs",
+                "state",
+            )
+        )
+
+        trials = trials.sort_values(
+            "value",
+            ascending=False,
+        )
+
+        trials.to_csv(
+            self.TRIALS_FILE,
+            index=False,
+        )
+
+        logger.info(
+            "Best parameters saved to %s",
+            self.BEST_PARAMS_FILE,
+        )
+
+        logger.info(
+            "Trials saved to %s",
+            self.TRIALS_FILE,
+        )
 
     # ============================================================
     # Reporting
@@ -409,7 +610,10 @@ class LogisticRegressionBaseline:
     # Pipeline
     # ============================================================
 
-    def run(self) -> dict[str, Any]:
+    def run(
+        self,
+        optimize: bool = False,
+    ) -> dict[str, Any]:
         """
         Execute the complete Logistic Regression pipeline.
 
@@ -439,13 +643,26 @@ class LogisticRegressionBaseline:
         self.prepare_features(df)
 
         # --------------------------------------------------------
-        # Build Model
+        # Hyperparameter Optimization
         # --------------------------------------------------------
 
-        model = self.build_model()
+        if optimize:
 
+            self.optimize()
+
+            model = self.build_model()
+
+            model.named_steps[
+                "classifier"
+            ].set_params(
+                **self.best_params,
+            )
+
+        else:
+
+            model = self.build_model()
         # --------------------------------------------------------
-        # Evaluate
+        # Evaluate Best Model
         # --------------------------------------------------------
 
         summary = self.run_cross_validation(
@@ -477,7 +694,11 @@ class LogisticRegressionBaseline:
 # Public API
 # ============================================================
 
-def run_logistic_regression() -> dict[str, Any]:
+
+def run_logistic_regression(
+    optimize: bool = False,
+) -> dict[str, Any]:
+        
     """
     Train and evaluate the Logistic Regression model.
 
@@ -487,7 +708,9 @@ def run_logistic_regression() -> dict[str, Any]:
         Cross-validation summary metrics.
     """
 
-    return LogisticRegressionBaseline().run()
+    return LogisticRegressionBaseline().run(
+        optimize=optimize,
+    )
 
 
 def main() -> None:
@@ -495,7 +718,9 @@ def main() -> None:
     Script entry point.
     """
 
-    run_logistic_regression()
+    run_logistic_regression(
+        optimize=True,
+    )
 
 
 if __name__ == "__main__":
