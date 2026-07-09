@@ -1,4 +1,4 @@
-﻿"""
+"""
 Logistic Regression baseline.
 
 Responsibilities
@@ -19,18 +19,16 @@ This module DOES NOT
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
-import json
-import optuna
 
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
-
+import optuna
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import average_precision_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -52,6 +50,7 @@ class LogisticRegressionBaseline:
         settings.FEATURES_DIR
         / "trainval_features.parquet"
     )
+
     MODEL_NAME = "logistic_regression"
 
     OPTUNA_TRIALS = 200
@@ -91,16 +90,16 @@ class LogisticRegressionBaseline:
         42,
     )
 
-    DECISION_THRESHOLD = 0.05
-
     def __init__(
         self,
         min_fraud_per_fold: int = 30,
+        decision_threshold: float = 0.5,
+        optimize: bool = False,
     ) -> None:
 
         self.min_fraud_per_fold = min_fraud_per_fold
-
-        self.data: pd.DataFrame | None = None
+        self.decision_threshold = decision_threshold
+        self.optimize = optimize
 
         self.X: np.ndarray | None = None
         self.y: np.ndarray | None = None
@@ -120,13 +119,18 @@ class LogisticRegressionBaseline:
         """
 
         logger.info("=" * 70)
-        logger.info(
-            "Loading development feature dataset..."
-        )
+        logger.info("Loading development feature dataset...")
 
-        table = pq.read_table(
-            self.INPUT_FILE
-        )
+        try:
+            table = pq.read_table(self.INPUT_FILE)
+        except FileNotFoundError as exc:
+            raise FileNotFoundError(
+                f"Feature dataset not found at: {self.INPUT_FILE}"
+            ) from exc
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to read parquet dataset at: {self.INPUT_FILE}"
+            ) from exc
 
         df = table.to_pandas()
 
@@ -135,8 +139,6 @@ class LogisticRegressionBaseline:
             len(df),
             len(df.columns),
         )
-
-        self.data = df
 
         return df
 
@@ -187,9 +189,7 @@ class LogisticRegressionBaseline:
         Prepare X, y and filing years.
         """
 
-        logger.info(
-            "Preparing feature matrix..."
-        )
+        logger.info("Preparing feature matrix...")
 
         feature_frame = df[
             self.FEATURE_COLUMNS
@@ -203,33 +203,21 @@ class LogisticRegressionBaseline:
         )
 
         if missing_before > 0:
-
             logger.warning(
                 "Replacing %d missing feature values with 0.0",
                 missing_before,
             )
 
-        feature_frame = (
-            feature_frame
-            .fillna(0.0)
-        )
+        feature_frame = feature_frame.fillna(0.0)
 
-        self.X = (
-            feature_frame
-            .to_numpy(dtype=np.float64)
-        )
+        self.X = feature_frame.to_numpy(dtype=np.float64)
+        self.y = df[self.TARGET_COLUMN].astype(np.int64).to_numpy()
+        self.years = df[self.YEAR_COLUMN].astype(np.int32).to_numpy()
 
-        self.y = (
-            df[self.TARGET_COLUMN]
-            .astype(np.int64)
-            .to_numpy()
-        )
-
-        self.years = (
-            df[self.YEAR_COLUMN]
-            .astype(np.int32)
-            .to_numpy()
-        )
+        if not np.isin(self.y, [0, 1]).all():
+            raise ValueError(
+                f"{self.TARGET_COLUMN} must be binary."
+            )
 
         logger.info(
             "Prepared X=%s y=%s",
@@ -247,7 +235,7 @@ class LogisticRegressionBaseline:
             self.years.min(),
             self.years.max(),
         )
-    
+
     # ============================================================
     # Model
     # ============================================================
@@ -255,6 +243,7 @@ class LogisticRegressionBaseline:
     def build_model(
         self,
         trial: optuna.Trial | None = None,
+        params: dict[str, Any] | None = None,
     ) -> Pipeline:
         """
         Build the Logistic Regression pipeline.
@@ -268,66 +257,58 @@ class LogisticRegressionBaseline:
             "Building Logistic Regression model..."
         )
 
+        if params is None:
+            if trial is not None:
+                params = {
+                    "C": trial.suggest_float(
+                        "C",
+                        1e-4,
+                        100.0,
+                        log=True,
+                    ),
+                    "solver": trial.suggest_categorical(
+                        "solver",
+                        [
+                            "lbfgs",
+                            "liblinear",
+                            "saga",
+                        ],
+                    ),
+                    "class_weight": trial.suggest_categorical(
+                        "class_weight",
+                        [
+                            None,
+                            "balanced",
+                        ],
+                    ),
+                    "max_iter": trial.suggest_int(
+                        "max_iter",
+                        500,
+                        3000,
+                        step=250,
+                    ),
+                }
+            else:
+                params = {
+                    "C": 1.0,
+                    "solver": "lbfgs",
+                    "class_weight": None,
+                    "max_iter": 1000,
+                }
+
         model = Pipeline(
-
             steps=[
-
                 (
                     "scaler",
                     StandardScaler(),
                 ),
-
                 (
                     "classifier",
                     LogisticRegression(
-
-                        C=(
-                            trial.suggest_float(
-                                "C",
-                                1e-4,
-                                100.0,
-                                log=True,
-                            )
-                            if trial
-                            else 1.0
-                        ),
-
-                        solver=(
-                            trial.suggest_categorical(
-                                "solver",
-                                [
-                                    "lbfgs",
-                                    "liblinear",
-                                    "saga",
-                                ],
-                            )
-                            if trial
-                            else "lbfgs"
-                        ),
-
-                        class_weight=(
-                            trial.suggest_categorical(
-                                "class_weight",
-                                [
-                                    None,
-                                    "balanced",
-                                ],
-                            )
-                            if trial
-                            else None
-                        ),
-
-                        max_iter=(
-                            trial.suggest_int(
-                                "max_iter",
-                                500,
-                                3000,
-                                step=250,
-                            )
-                            if trial
-                            else 1000
-                        ),
-
+                        C=params["C"],
+                        solver=params["solver"],
+                        class_weight=params["class_weight"],
+                        max_iter=params["max_iter"],
                         random_state=self.RANDOM_STATE,
                     ),
                 ),
@@ -337,16 +318,15 @@ class LogisticRegressionBaseline:
         logger.info(
             "Pipeline:"
         )
-
         logger.info(
             "  StandardScaler"
         )
-
-        classifier = model.named_steps["classifier"]
-
         logger.info(
-            "  LogisticRegression(%s)",
-            classifier.get_params(),
+            "  LogisticRegression(C=%s, solver=%s, class_weight=%s, max_iter=%s)",
+            params["C"],
+            params["solver"],
+            params["class_weight"],
+            params["max_iter"],
         )
 
         return model
@@ -388,9 +368,8 @@ class LogisticRegressionBaseline:
             y=self.y,
             years=self.years,
             model_name=self.MODEL_NAME,
-            decision_threshold=self.DECISION_THRESHOLD,
+            decision_threshold=self.decision_threshold,
         )
-        
 
         self.cv_summary = summary
 
@@ -399,9 +378,11 @@ class LogisticRegressionBaseline:
         )
 
         return summary
+
     # ============================================================
     # Optuna
     # ============================================================
+
     def objective(
         self,
         trial: optuna.Trial,
@@ -418,30 +399,30 @@ class LogisticRegressionBaseline:
             model
         )
 
-        score = summary["pr_auc"]["mean"]
+        if "pr_auc" not in summary or "mean" not in summary["pr_auc"]:
+            raise optuna.TrialPruned("PR-AUC missing from CV summary.")
+
+        score = float(summary["pr_auc"]["mean"])
 
         trial.set_user_attr(
             "roc_auc",
             summary["roc_auc"]["mean"],
         )
-
         trial.set_user_attr(
             "f1",
             summary["f1"]["mean"],
         )
-
         trial.set_user_attr(
             "mcc",
             summary["mcc"]["mean"],
         )
-
         trial.set_user_attr(
             "balanced_acc",
             summary["balanced_acc"]["mean"],
         )
 
         return score
-    
+
     def optimize(
         self,
     ) -> None:
@@ -455,6 +436,10 @@ class LogisticRegressionBaseline:
             "Starting Optuna optimization..."
         )
         logger.info("=" * 70)
+
+        self.OPTUNA_STORAGE.parent.mkdir(parents=True, exist_ok=True)
+        self.BEST_PARAMS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        self.TRIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
 
         self.study = optuna.create_study(
             study_name="logistic_regression",
@@ -483,24 +468,24 @@ class LogisticRegressionBaseline:
         )
 
         for key, value in self.best_params.items():
-
             logger.info(
                 "%s = %s",
                 key,
                 value,
             )
 
+        tmp_best_params = self.BEST_PARAMS_FILE.with_suffix(".json.tmp")
         with open(
-            self.BEST_PARAMS_FILE,
+            tmp_best_params,
             "w",
             encoding="utf-8",
         ) as f:
-
             json.dump(
                 self.best_params,
                 f,
                 indent=4,
             )
+        tmp_best_params.replace(self.BEST_PARAMS_FILE)
 
         trials = self.study.trials_dataframe(
             attrs=(
@@ -510,17 +495,17 @@ class LogisticRegressionBaseline:
                 "user_attrs",
                 "state",
             )
-        )
-
-        trials = trials.sort_values(
+        ).sort_values(
             "value",
             ascending=False,
         )
 
+        tmp_trials = self.TRIALS_FILE.with_suffix(".csv.tmp")
         trials.to_csv(
-            self.TRIALS_FILE,
+            tmp_trials,
             index=False,
         )
+        tmp_trials.replace(self.TRIALS_FILE)
 
         logger.info(
             "Best parameters saved to %s",
@@ -544,13 +529,12 @@ class LogisticRegressionBaseline:
         """
 
         if not self.cv_summary:
-
             logger.warning(
                 "No CV summary available."
             )
             return
 
-        self._extracted_from_run_15("Logistic Regression Summary")
+        self._log_section_header("Logistic Regression Summary")
         logger.info(
             "Folds Evaluated : %d",
             self.cv_summary.get(
@@ -558,7 +542,6 @@ class LogisticRegressionBaseline:
                 0,
             ),
         )
-
         logger.info(
             "Years Evaluated : %s",
             self.cv_summary.get(
@@ -566,12 +549,10 @@ class LogisticRegressionBaseline:
                 [],
             ),
         )
-
         logger.info(
             "Overall Fraud Rate : %.2f%%",
             self.y.mean() * 100,
         )
-
         logger.info(
             "Total Fraud Cases : %d",
             self.cv_summary.get(
@@ -579,6 +560,19 @@ class LogisticRegressionBaseline:
                 0,
             ),
         )
+
+        if "decision_threshold_mean" in self.cv_summary:
+            logger.info(
+                "Decision Threshold : mean=%0.4f std=%0.4f",
+                self.cv_summary.get(
+                    "decision_threshold_mean",
+                    0.0,
+                ),
+                self.cv_summary.get(
+                    "decision_threshold_std",
+                    0.0,
+                ),
+            )
 
         metric_names = [
             "roc_auc",
@@ -606,7 +600,8 @@ class LogisticRegressionBaseline:
                 )
 
         logger.info("=" * 70)
-        # ============================================================
+
+    # ============================================================
     # Pipeline
     # ============================================================
 
@@ -623,55 +618,21 @@ class LogisticRegressionBaseline:
             Cross-validation summary metrics.
         """
 
-        self._extracted_from_run_15("Starting Logistic Regression...")
-        # --------------------------------------------------------
-        # Load Dataset
-        # --------------------------------------------------------
+        self._log_section_header("Starting Logistic Regression...")
 
         df = self.load_dataset()
-
-        # --------------------------------------------------------
-        # Validate Dataset
-        # --------------------------------------------------------
-
         self.validate_dataset(df)
-
-        # --------------------------------------------------------
-        # Prepare Features
-        # --------------------------------------------------------
-
         self.prepare_features(df)
 
-        # --------------------------------------------------------
-        # Hyperparameter Optimization
-        # --------------------------------------------------------
-
         if optimize:
-
             self.optimize()
-
-            model = self.build_model()
-
-            model.named_steps[
-                "classifier"
-            ].set_params(
-                **self.best_params,
-            )
-
+            model = self.build_model(params=self.best_params)
         else:
-
             model = self.build_model()
-        # --------------------------------------------------------
-        # Evaluate Best Model
-        # --------------------------------------------------------
 
         summary = self.run_cross_validation(
             model
         )
-
-        # --------------------------------------------------------
-        # Summary
-        # --------------------------------------------------------
 
         self.log_summary()
 
@@ -683,10 +644,9 @@ class LogisticRegressionBaseline:
 
         return summary
 
-    # TODO Rename this here and in `log_summary` and `run`
-    def _extracted_from_run_15(self, arg0):
+    def _log_section_header(self, title: str) -> None:
         logger.info("=" * 70)
-        logger.info(arg0)
+        logger.info(title)
         logger.info("=" * 70)
 
 
@@ -694,11 +654,9 @@ class LogisticRegressionBaseline:
 # Public API
 # ============================================================
 
-
 def run_logistic_regression(
     optimize: bool = False,
 ) -> dict[str, Any]:
-        
     """
     Train and evaluate the Logistic Regression model.
 
@@ -719,7 +677,7 @@ def main() -> None:
     """
 
     run_logistic_regression(
-        optimize=True,
+        optimize=False,
     )
 
 
