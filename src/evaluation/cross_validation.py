@@ -1,4 +1,4 @@
-"""
+﻿"""
 Walk-forward cross-validation engine.
 
 Responsibilities
@@ -221,7 +221,6 @@ class WalkForwardCV:
 
         X_train, y_train = X[train_idx], y[train_idx]
         X_test, y_test = X[test_idx], y[test_idx]
-<<<<<<< HEAD
 
         if len(np.unique(y_train)) < 2:
             logger.warning(
@@ -276,34 +275,6 @@ class WalkForwardCV:
             )
         else:
             best_threshold = decision_threshold
-=======
-
-        if len(np.unique(y_train)) < 2:
-            logger.warning(
-                "Skipping year=%d because training fold has only one class.",
-                test_year,
-            )
-            return {}
-
-        model.fit(X_train, y_train)
-
-        if hasattr(model, "predict_proba"):
-            train_score = model.predict_proba(X_train)[:, 1]
-            test_score = model.predict_proba(X_test)[:, 1]
-        elif hasattr(model, "decision_function"):
-            train_score = model.decision_function(X_train)
-            test_score = model.decision_function(X_test)
-        else:
-            raise AttributeError(
-                "Estimator must implement predict_proba() or decision_function()."
-            )
-
-        best_threshold = self.find_best_threshold(
-            y_train,
-            train_score,
-            default_threshold=decision_threshold,
-        )
->>>>>>> aaf34bff6668d91bf702bef9fb2fe88066ebc37c
 
         logger.info(
             "Year %d | Optimal Threshold = %.2f",
@@ -481,22 +452,18 @@ class WalkForwardCV:
             )
 
         summary = self.aggregate_metrics()
-        summary_path = self.output_dir / f"{model_name}_cv_summary.json"
-        with open(summary_path, "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=4)
-        logger.info("CV summary saved to %s", summary_path)
-
+        self._extracted_from_save_results_98(
+            model_name, '_cv_summary.json', summary, "CV summary saved to %s"
+        )
         if self.calibration_curves:
             curves_path = self.output_dir / f"{model_name}_calibration_curves.json"
             with open(curves_path, "w", encoding="utf-8") as f:
                 json.dump(self.calibration_curves, f, indent=4)
             logger.info("Calibration curves saved to %s", curves_path)
 
-            calibrated_folds = [
+            if calibrated_folds := [
                 r for r in self.fold_results if r.get("calibrated")
-            ]
-
-            if calibrated_folds:
+            ]:
                 cal_df = pd.DataFrame(calibrated_folds)
 
                 improvements = (
@@ -531,10 +498,19 @@ class WalkForwardCV:
                         "n_folds_worsened": int((improvements < 0).sum()),
                     }
 
-                cal_summary_path = self.output_dir / f"{model_name}_calibration_summary.json"
-                with open(cal_summary_path, "w", encoding="utf-8") as f:
-                    json.dump(calibration_summary, f, indent=4)
-                logger.info("Calibration summary saved to %s", cal_summary_path)
+                self._extracted_from_save_results_98(
+                    model_name,
+                    '_calibration_summary.json',
+                    calibration_summary,
+                    "Calibration summary saved to %s",
+                )
+
+    # TODO Rename this here and in `save_results`
+    def _extracted_from_save_results_98(self, model_name, arg1, arg2, arg3):
+        cal_summary_path = self.output_dir / f"{model_name}{arg1}"
+        with open(cal_summary_path, "w", encoding="utf-8") as f:
+            json.dump(arg2, f, indent=4)
+        logger.info(arg3, cal_summary_path)
 
     # ============================================================
     # Main Entry Point
