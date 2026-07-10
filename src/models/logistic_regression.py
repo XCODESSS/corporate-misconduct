@@ -1,4 +1,4 @@
-﻿"""
+"""
 Logistic Regression baseline.
 
 Responsibilities
@@ -20,20 +20,16 @@ This module DOES NOT
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import numpy as np
+import optuna
 import pandas as pd
 import pyarrow.parquet as pq
-import optuna
-
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-
-import configs.settings as settings
-
 from src.evaluation.cross_validation import WalkForwardCV
 from src.utils.logger import get_logger
 
@@ -46,29 +42,17 @@ class LogisticRegressionBaseline:
     using walk-forward cross-validation.
     """
 
-    INPUT_FILE = (
-        settings.FEATURES_DIR
-        / "trainval_features.parquet"
-    )
+    INPUT_FILE = settings.FEATURES_DIR / "trainval_features.parquet"
 
     MODEL_NAME = "logistic_regression"
 
     OPTUNA_TRIALS = 200
 
-    OPTUNA_STORAGE = (
-        settings.REPORTS_DIR
-        / "logistic_regression_optuna.db"
-    )
+    OPTUNA_STORAGE = settings.REPORTS_DIR / "logistic_regression_optuna.db"
 
-    BEST_PARAMS_FILE = (
-        settings.REPORTS_DIR
-        / "logistic_regression_best_params.json"
-    )
+    BEST_PARAMS_FILE = settings.REPORTS_DIR / "logistic_regression_best_params.json"
 
-    TRIALS_FILE = (
-        settings.REPORTS_DIR
-        / "logistic_regression_trials.csv"
-    )
+    TRIALS_FILE = settings.REPORTS_DIR / "logistic_regression_trials.csv"
 
     FEATURE_COLUMNS = [
         "negative_density",
@@ -98,12 +82,11 @@ class LogisticRegressionBaseline:
         decision_threshold: float = 0.5,
         optimize: bool = False,
     ) -> None:
-
         self.min_fraud_per_fold = min_fraud_per_fold
         self.calibrate = calibrate
         self.calibration_method = calibration_method
         self.decision_threshold = decision_threshold
-        self.optimize = optimize
+        self.should_optimize = optimize
 
         self.data: pd.DataFrame | None = None
 
@@ -162,24 +145,15 @@ class LogisticRegressionBaseline:
         Ensure all required columns exist.
         """
 
-        required_columns = (
-            self.FEATURE_COLUMNS
-            + [
-                self.TARGET_COLUMN,
-                self.YEAR_COLUMN,
-            ]
-        )
+        required_columns = self.FEATURE_COLUMNS + [
+            self.TARGET_COLUMN,
+            self.YEAR_COLUMN,
+        ]
 
         if missing := [
-            column
-            for column in required_columns
-            if column not in df.columns
+            column for column in required_columns if column not in df.columns
         ]:
-
-            raise ValueError(
-                "Dataset missing required columns:\n"
-                + "\n".join(missing)
-            )
+            raise ValueError("Dataset missing required columns:\n" + "\n".join(missing))
 
         logger.info("Dataset validation successful.")
 
@@ -494,7 +468,7 @@ class LogisticRegressionBaseline:
 
     def run(
         self,
-        optimize: bool = False,
+        optimize: bool | None = None,
     ) -> dict[str, Any]:
         """
         Execute the complete Logistic Regression pipeline.
@@ -511,7 +485,9 @@ class LogisticRegressionBaseline:
         self.validate_dataset(df)
         self.prepare_features(df)
 
-        if optimize:
+        should_optimize = self.should_optimize if optimize is None else optimize
+
+        if should_optimize:
             self.optimize()
             model = self.build_model(params=self.best_params)
         else:
@@ -536,6 +512,7 @@ class LogisticRegressionBaseline:
 # Public API
 # ============================================================
 
+
 def run_logistic_regression(
     optimize: bool = False,
 ) -> dict[str, Any]:
@@ -548,7 +525,7 @@ def run_logistic_regression(
         Cross-validation summary metrics.
     """
 
-    return LogisticRegressionBaseline(optimize=optimize).run(optimize=optimize)
+    return LogisticRegressionBaseline(optimize=optimize).run()
 
 
 def main() -> None:
@@ -560,5 +537,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-
     main()

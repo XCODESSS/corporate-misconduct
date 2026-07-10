@@ -1,4 +1,4 @@
-﻿"""
+"""
 Clean raw MD&A text while preserving firm-year metadata.
 
 Responsibilities
@@ -22,18 +22,16 @@ from __future__ import annotations
 import html
 import re
 import unicodedata
-from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-HTML_TAG_RE   = re.compile(r"<[^>]+>")
+HTML_TAG_RE = re.compile(r"<[^>]+>")
 WHITESPACE_RE = re.compile(r"\s+")
 
 
@@ -42,25 +40,18 @@ class MdaTextCleaner:
     Clean MD&A text in the labeled firm-year dataset.
     """
 
-    INPUT_FILE = (
-        settings.INTERIM_DIR
-        / "labeled_firm_years.parquet"
-    )
+    INPUT_FILE = settings.INTERIM_DIR / "labeled_firm_years.parquet"
 
-    OUTPUT_FILE = (
-        settings.INTERIM_CLEANED_DIR
-        / "cleaned_firm_years.parquet"
-    )
+    OUTPUT_FILE = settings.INTERIM_CLEANED_DIR / "cleaned_firm_years.parquet"
 
     def __init__(
         self,
         batch_size: int = 10_000,
     ) -> None:
-
-        self.batch_size    = batch_size
-        self.rows_read     = 0
-        self.rows_written  = 0
-        self.rows_skipped  = 0
+        self.batch_size = batch_size
+        self.rows_read = 0
+        self.rows_written = 0
+        self.rows_skipped = 0
 
     # ============================================================
     # Text Cleaning
@@ -127,7 +118,6 @@ class MdaTextCleaner:
         cleaned = []
 
         for ch in text:
-
             if ch in ("\n", "\t"):
                 cleaned.append(ch)
                 continue
@@ -144,9 +134,9 @@ class MdaTextCleaner:
     # ============================================================
 
     def process_record(
-    self,
-    record: dict[str, Any],
-) -> dict[str, Any]:
+        self,
+        record: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Clean a single record.
 
@@ -157,11 +147,10 @@ class MdaTextCleaner:
 
         cleaned_record = dict(record)
 
-        cleaned_record["mda"] = self.clean_mda_text(
-            record.get("mda")
-        )
+        cleaned_record["mda"] = self.clean_mda_text(record.get("mda"))
 
         return cleaned_record
+
     # ============================================================
     # Batch Writing
     # ============================================================
@@ -179,15 +168,10 @@ class MdaTextCleaner:
 
         frame = pd.DataFrame.from_records(batch)
 
-        object_cols = frame.select_dtypes(
-        include=["object", "str"]
-        ).columns
+        object_cols = frame.select_dtypes(include=["object", "str"]).columns
 
         if len(object_cols) > 0:
-            frame[object_cols] = (
-                frame[object_cols]
-                .astype("string")
-            )
+            frame[object_cols] = frame[object_cols].astype("string")
 
         if writer is not None:
             table = pa.Table.from_pandas(
@@ -233,19 +217,10 @@ class MdaTextCleaner:
         batch: list[dict[str, Any]] = []
 
         try:
-
-            for arrow_batch in parquet.iter_batches(
-                batch_size=self.batch_size
-            ):
-
-                records = (
-                    pa.Table
-                    .from_batches([arrow_batch])
-                    .to_pylist()
-                )
+            for arrow_batch in parquet.iter_batches(batch_size=self.batch_size):
+                records = pa.Table.from_batches([arrow_batch]).to_pylist()
 
                 for record in records:
-
                     self.rows_read += 1
 
                     cleaned = self.process_record(record)
@@ -266,7 +241,6 @@ class MdaTextCleaner:
                 batch.clear()
 
         finally:
-
             if writer is not None:
                 writer.close()
 
@@ -288,6 +262,7 @@ class MdaTextCleaner:
 # ============================================================
 # Public API
 # ============================================================
+
 
 def clean_firm_year_mda_text() -> None:
     MdaTextCleaner().run()

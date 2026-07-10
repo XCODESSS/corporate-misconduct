@@ -14,3 +14,14 @@ Project scaffold for analyzing corporate misconduct warning signals from the Lou
 ## Data
 
 Place the source CSV at `data/raw/lm_summaries/Loughran-McDonald_10X_Summaries_1993-2025.csv`.
+
+## Code quality
+
+Install development dependencies with `pip install -r requirements-dev.txt`, then run the following checks:
+
+```powershell
+ruff check --no-cache src tests configs
+ruff format --check --no-cache src tests configs
+```
+
+Use `ruff check --fix --no-cache src tests configs` followed by `ruff format --no-cache src tests configs` to apply safe lint fixes and formatting.

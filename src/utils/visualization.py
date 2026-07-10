@@ -1,2 +1,1 @@
-﻿"""Module: visualization."""
-
+"""Module: visualization."""

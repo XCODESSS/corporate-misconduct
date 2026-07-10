@@ -306,12 +306,7 @@ class DummyBaseline:
             )
             return
 
-        logger.info("=" * 70)
-        logger.info(
-            "Dummy Classifier Summary"
-        )
-        logger.info("=" * 70)
-
+        self._extracted_from_run_15("Dummy Classifier Summary")
         logger.info(
             "Folds Evaluated : %d",
             self.cv_summary.get(
@@ -372,10 +367,7 @@ class DummyBaseline:
             Cross-validation summary metrics.
         """
 
-        logger.info("=" * 70)
-        logger.info("Starting DummyClassifier baseline...")
-        logger.info("=" * 70)
-
+        self._extracted_from_run_15("Starting DummyClassifier baseline...")
         # --------------------------------------------------------
         # Load Dataset
         # --------------------------------------------------------
@@ -416,6 +408,12 @@ class DummyBaseline:
         logger.info("=" * 70)
 
         return summary
+
+    # TODO Rename this here and in `log_summary` and `run`
+    def _extracted_from_run_15(self, arg0):
+        logger.info("=" * 70)
+        logger.info(arg0)
+        logger.info("=" * 70)
 
 
 # ============================================================

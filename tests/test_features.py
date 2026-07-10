@@ -1,2 +1,1 @@
-﻿"""Module: test_features."""
-
+"""Module: test_features."""

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Statistical validation of linguistic fraud hypotheses.
 
 Responsibilities
@@ -22,19 +22,16 @@ This module DOES NOT
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import numpy as np
 import pandas as pd
-
 from scipy import stats
+from sklearn.preprocessing import StandardScaler
+from src.utils.logger import get_logger
 from statsmodels.stats.multitest import multipletests
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.preprocessing import StandardScaler
-import configs.settings as settings
-
-from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -45,56 +42,29 @@ class StatisticalTester:
     linguistic hypotheses.
     """
 
-    INPUT_FILE = (
-        settings.FEATURES_DIR
-        / "trainval_features.parquet"
-    )
+    INPUT_FILE = settings.FEATURES_DIR / "trainval_features.parquet"
 
-    OUTPUT_DIR = (
-        settings.REPORTS_DIR
-        / "statistical_tests"
-    )
+    OUTPUT_DIR = settings.REPORTS_DIR / "statistical_tests"
 
-    SUMMARY_FILE = (
-        OUTPUT_DIR
-        / "hypothesis_test_results.csv"
-    )
+    SUMMARY_FILE = OUTPUT_DIR / "hypothesis_test_results.csv"
 
-    CORRELATION_FILE = (
-        OUTPUT_DIR
-        / "correlation_matrix.csv"
-    )
+    CORRELATION_FILE = OUTPUT_DIR / "correlation_matrix.csv"
 
-    VIF_FILE = (
-        OUTPUT_DIR
-        / "vif.csv"
-    )
+    VIF_FILE = OUTPUT_DIR / "vif.csv"
 
-    REPORT_FILE = (
-        OUTPUT_DIR
-        / "statistical_report.json"
-    )
+    REPORT_FILE = OUTPUT_DIR / "statistical_report.json"
 
     FEATURES = [
-
         "negative_density",
-
         "positive_density",
-
         "uncertainty_density",
-
         "litigious_density",
-
         "weak_modal_density",
-
         "strong_modal_density",
-
         "constraining_density",
-
     ]
 
     def __init__(self) -> None:
-
         self.df: pd.DataFrame | None = None
 
         self.fraud: pd.DataFrame | None = None
@@ -112,23 +82,14 @@ class StatisticalTester:
     # ============================================================
 
     def load_dataset(self) -> None:
-
         logger.info("=" * 70)
-        logger.info(
-            "Loading feature-engineered dataset..."
-        )
+        logger.info("Loading feature-engineered dataset...")
 
-        self.df = pd.read_parquet(
-            self.INPUT_FILE
-        )
+        self.df = pd.read_parquet(self.INPUT_FILE)
 
-        self.fraud = self.df[
-            self.df["fraudulent"] == 1
-        ]
+        self.fraud = self.df[self.df["fraudulent"] == 1]
 
-        self.clean = self.df[
-            self.df["fraudulent"] == 0
-        ]
+        self.clean = self.df[self.df["fraudulent"] == 0]
 
         self._extracted_from_log_feature_summary_20()
 
@@ -152,23 +113,7 @@ class StatisticalTester:
             return np.nan
 
         pooled_sd = np.sqrt(
-
-            (
-
-                (nx - 1)
-                * x.var(ddof=1)
-
-                +
-
-                (ny - 1)
-                * y.var(ddof=1)
-
-            )
-
-            /
-
-            (nx + ny - 2)
-
+            ((nx - 1) * x.var(ddof=1) + (ny - 1) * y.var(ddof=1)) / (nx + ny - 2)
         )
 
         return np.nan if pooled_sd == 0 else (x.mean() - y.mean()) / pooled_sd
@@ -178,21 +123,15 @@ class StatisticalTester:
         fraud_mean: float,
         clean_mean: float,
     ) -> float:
-
         if clean_mean == 0:
             return np.nan
 
-        return (
-            (fraud_mean - clean_mean)
-            / clean_mean
-            * 100
-        )
+        return (fraud_mean - clean_mean) / clean_mean * 100
 
     @staticmethod
     def round_dataframe(
         df: pd.DataFrame,
     ) -> pd.DataFrame:
-
         return df.round(
             {
                 "mean_fraud": 6,
@@ -206,6 +145,7 @@ class StatisticalTester:
             }
         )
         # ============================================================
+
     # Descriptive Statistics
     # ============================================================
 
@@ -215,36 +155,27 @@ class StatisticalTester:
         feature by fraud class.
         """
 
-        logger.info(
-            "Computing descriptive statistics..."
-        )
+        logger.info("Computing descriptive statistics...")
 
         rows = []
 
         for feature in self.FEATURES:
-
             fraud_values = self.fraud[feature].dropna()
             clean_values = self.clean[feature].dropna()
 
             rows.append(
                 {
                     "feature": feature,
-
                     "fraud_n": len(fraud_values),
                     "clean_n": len(clean_values),
-
                     "fraud_mean": fraud_values.mean(),
                     "clean_mean": clean_values.mean(),
-
                     "fraud_std": fraud_values.std(),
                     "clean_std": clean_values.std(),
-
                     "fraud_median": fraud_values.median(),
                     "clean_median": clean_values.median(),
-
                     "fraud_min": fraud_values.min(),
                     "clean_min": clean_values.min(),
-
                     "fraud_max": fraud_values.max(),
                     "clean_max": clean_values.max(),
                 }
@@ -259,9 +190,7 @@ class StatisticalTester:
             index=False,
         )
 
-        logger.info(
-            "Descriptive statistics written."
-        )
+        logger.info("Descriptive statistics written.")
 
         return descriptive
 
@@ -275,31 +204,13 @@ class StatisticalTester:
         density features.
         """
 
-        logger.info(
-            "Computing correlation matrix..."
-        )
+        logger.info("Computing correlation matrix...")
 
-        self.correlation = (
+        self.correlation = self.df[self.FEATURES].corr(method="pearson").round(6)
 
-            self.df[
-                self.FEATURES
-            ]
+        self.correlation.to_csv(self.CORRELATION_FILE)
 
-            .corr(
-                method="pearson"
-            )
-
-            .round(6)
-
-        )
-
-        self.correlation.to_csv(
-            self.CORRELATION_FILE
-        )
-
-        logger.info(
-            "Correlation matrix saved."
-        )
+        logger.info("Correlation matrix saved.")
 
     # ============================================================
     # Variance Inflation Factors
@@ -312,8 +223,6 @@ class StatisticalTester:
         Standardization doesn't change the theoretical VIF but
         improves numerical stability of the underlying regression.
         """
-
-
 
         logger.info("Computing variance inflation factors...")
 
@@ -343,16 +252,14 @@ class StatisticalTester:
         self.vif.to_csv(self.VIF_FILE, index=False)
 
         logger.info("VIF analysis saved.")
+
     # ============================================================
     # Summary Logging
     # ============================================================
 
     def log_feature_summary(self) -> None:
-
         logger.info("=" * 70)
-        logger.info(
-            "Feature Summary"
-        )
+        logger.info("Feature Summary")
         logger.info("=" * 70)
 
         self._extracted_from_log_feature_summary_20()
@@ -369,6 +276,7 @@ class StatisticalTester:
         logger.info("Fraud observations : %d", len(self.fraud))
         logger.info("Clean observations : %d", len(self.clean))
         # ============================================================
+
     # Hypothesis Testing
     # ============================================================
 
@@ -381,23 +289,14 @@ class StatisticalTester:
         Holm-Bonferroni correction.
         """
 
-        logger.info(
-            "Performing hypothesis tests..."
-        )
+        logger.info("Performing hypothesis tests...")
 
         rows = []
 
         for feature in self.FEATURES:
+            fraud_values = self.fraud[feature].dropna()
 
-            fraud_values = (
-                self.fraud[feature]
-                .dropna()
-            )
-
-            clean_values = (
-                self.clean[feature]
-                .dropna()
-            )
+            clean_values = self.clean[feature].dropna()
 
             fraud_mean = fraud_values.mean()
             clean_mean = clean_values.mean()
@@ -411,119 +310,68 @@ class StatisticalTester:
             rows.append(
                 {
                     "feature": feature,
-
-                    "fraud_n": len(
-                        fraud_values
-                    ),
-
-                    "clean_n": len(
-                        clean_values
-                    ),
-
+                    "fraud_n": len(fraud_values),
+                    "clean_n": len(clean_values),
                     "mean_fraud": fraud_mean,
-
                     "mean_clean": clean_mean,
-
                     "diff_pct": self.percent_difference(
                         fraud_mean,
                         clean_mean,
                     ),
-
                     "cohens_d": self.cohens_d(
                         fraud_values,
                         clean_values,
                     ),
-
                     "t_stat": t_stat,
-
                     "p_value": p_value,
                 }
             )
 
-        self.results = pd.DataFrame(
-            rows
-        )
+        self.results = pd.DataFrame(rows)
 
-        self.results["p_holm"] = (
-            multipletests(
-                self.results["p_value"],
-                method="holm",
-            )[1]
-        )
+        self.results["p_holm"] = multipletests(
+            self.results["p_value"],
+            method="holm",
+        )[1]
 
-        self.results[
-            "significant_holm"
-        ] = (
-            self.results["p_holm"] < 0.05
-        )
+        self.results["significant_holm"] = self.results["p_holm"] < 0.05
 
-        self.results = self.round_dataframe(
-            self.results
-        )
+        self.results = self.round_dataframe(self.results)
 
         self.results.to_csv(
             self.SUMMARY_FILE,
             index=False,
         )
 
-        logger.info(
-            "Hypothesis testing complete."
-        )
+        logger.info("Hypothesis testing complete.")
 
     # ============================================================
     # Report Generation
     # ============================================================
 
     def report(self) -> dict[str, Any]:
-
-        significant = int(
-            self.results[
-                "significant_holm"
-            ].sum()
-        )
+        significant = int(self.results["significant_holm"].sum())
 
         return {
-
-            "total_observations":
-                len(self.df),
-
-            "fraud_observations":
-                len(self.fraud),
-
-            "clean_observations":
-                len(self.clean),
-
-            "features_tested":
-                len(self.FEATURES),
-
-            "significant_features":
-                significant,
-
-            "holm_correction":
-                True,
-
-            "correlation_file":
-                str(self.CORRELATION_FILE),
-
-            "vif_file":
-                str(self.VIF_FILE),
-
-            "hypothesis_results":
-                str(self.SUMMARY_FILE),
+            "total_observations": len(self.df),
+            "fraud_observations": len(self.fraud),
+            "clean_observations": len(self.clean),
+            "features_tested": len(self.FEATURES),
+            "significant_features": significant,
+            "holm_correction": True,
+            "correlation_file": str(self.CORRELATION_FILE),
+            "vif_file": str(self.VIF_FILE),
+            "hypothesis_results": str(self.SUMMARY_FILE),
         }
 
     def write_report(self) -> None:
-
-        logger.info(
-            "Writing statistical report..."
-        )
+        logger.info("Writing statistical report...")
 
         with open(
             self.REPORT_FILE,
             "w",
             encoding="utf-8",
         ) as file:
-
             json.dump(
                 self.report(),
                 file,
@@ -531,34 +379,21 @@ class StatisticalTester:
                 ensure_ascii=False,
             )
 
-        logger.info(
-            "Statistical report written."
-        )
+        logger.info("Statistical report written.")
 
     # ============================================================
     # Console Output
     # ============================================================
 
     def print_results(self) -> None:
-
         self._extracted_from_print_results_3("Correlation Matrix")
-        print(
-            self.correlation.to_string()
-        )
+        print(self.correlation.to_string())
 
         self._extracted_from_print_results_3("Variance Inflation Factors")
-        print(
-            self.vif.to_string(
-                index=False
-            )
-        )
+        print(self.vif.to_string(index=False))
 
         self._extracted_from_print_results_3("Hypothesis Test Results")
-        print(
-            self.results.to_string(
-                index=False
-            )
-        )
+        print(self.results.to_string(index=False))
 
         print("=" * 110)
 
@@ -569,9 +404,9 @@ class StatisticalTester:
         print("=" * 110)
         print(arg0)
         print("=" * 110)
+
     @staticmethod
     def interpret_cohens_d(d: float) -> str:
-
         d = abs(d)
 
         if d < 0.20:
@@ -581,12 +416,12 @@ class StatisticalTester:
             return "Small"
 
         return "Medium" if d < 0.80 else "Large"
+
     # ============================================================
     # Pipeline
     # ============================================================
 
     def run(self) -> None:
-
         self.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
         self.load_dataset()

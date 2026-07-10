@@ -20,17 +20,14 @@ This module DOES NOT
 
 from __future__ import annotations
 
-import json
 import calendar
-from pathlib import Path
+import json
 from typing import Any
 
+import configs.settings as settings
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,20 +39,11 @@ class FraudPeriodsIngestion:
     AAER Mark 5 dataset.
     """
 
-    INPUT_FILE = (
-        settings.FINNLP_DIR
-        / "aaer_mark5.csv"
-    )
+    INPUT_FILE = settings.FINNLP_DIR / "aaer_mark5.csv"
 
-    OUTPUT_FILE = (
-        settings.INTERIM_DIR
-        / "fraud_periods.parquet"
-    )
+    OUTPUT_FILE = settings.INTERIM_DIR / "fraud_periods.parquet"
 
-    REPORT_FILE = (
-        settings.INTERIM_VALIDATED_DIR
-        / "fraud_periods_report.json"
-    )
+    REPORT_FILE = settings.INTERIM_VALIDATED_DIR / "fraud_periods_report.json"
 
     COLUMN_NAMES = [
         "id",
@@ -113,7 +101,6 @@ class FraudPeriodsIngestion:
     ]
 
     def __init__(self) -> None:
-
         self.rows_read = 0
         self.rows_written = 0
 
@@ -135,9 +122,7 @@ class FraudPeriodsIngestion:
         Load the AAER dataset.
         """
 
-        logger.info(
-            "Loading AAER dataset..."
-        )
+        logger.info("Loading AAER dataset...")
 
         dataframe = pd.read_csv(
             self.INPUT_FILE,
@@ -182,7 +167,6 @@ class FraudPeriodsIngestion:
         except (ValueError, TypeError):
             return pd.NaT
 
-
     @staticmethod
     def parse_end_date(value: str) -> pd.Timestamp:
         """
@@ -206,6 +190,7 @@ class FraudPeriodsIngestion:
             )
         except (ValueError, TypeError):
             return pd.NaT
+
     # ============================================================
     # Preparation
     # ============================================================
@@ -218,27 +203,15 @@ class FraudPeriodsIngestion:
         Prepare the fraud periods dataset.
         """
 
-        logger.info(
-            "Preparing fraud periods..."
-        )
+        logger.info("Preparing fraud periods...")
 
         dataframe = dataframe.copy()
 
-        dataframe["cik"] = (
-            dataframe["cik"]
-            .astype(str)
-            .str.strip()
-        )
+        dataframe["cik"] = dataframe["cik"].astype(str).str.strip()
 
-        dataframe["fraud_start"] = (
-            dataframe["fraud_start"]
-            .apply(self.parse_start_date)
-        )
+        dataframe["fraud_start"] = dataframe["fraud_start"].apply(self.parse_start_date)
 
-        dataframe["fraud_end"] = (
-            dataframe["fraud_end"]
-            .apply(self.parse_end_date)
-        )
+        dataframe["fraud_end"] = dataframe["fraud_end"].apply(self.parse_end_date)
 
         dataframe["certainty_start"] = (
             pd.to_numeric(
@@ -258,13 +231,9 @@ class FraudPeriodsIngestion:
             .astype(int)
         )
 
-        dataframe = dataframe[
-            self.OUTPUT_COLUMNS
-        ]
+        dataframe = dataframe[self.OUTPUT_COLUMNS]
 
-        logger.info(
-            "Fraud periods prepared."
-        )
+        logger.info("Fraud periods prepared.")
 
         return dataframe
 
@@ -280,28 +249,13 @@ class FraudPeriodsIngestion:
         Validate fraud periods.
         """
 
-        logger.info(
-            "Validating fraud periods..."
-        )
+        logger.info("Validating fraud periods...")
 
-        self.missing_cik = (
-            dataframe["cik"]
-            .replace("", pd.NA)
-            .isna()
-            .sum()
-        )
+        self.missing_cik = dataframe["cik"].replace("", pd.NA).isna().sum()
 
-        self.missing_start = (
-            dataframe["fraud_start"]
-            .isna()
-            .sum()
-        )
+        self.missing_start = dataframe["fraud_start"].isna().sum()
 
-        self.missing_end = (
-            dataframe["fraud_end"]
-            .isna()
-            .sum()
-        )
+        self.missing_end = dataframe["fraud_end"].isna().sum()
 
         dataframe = dataframe.dropna(
             subset=[
@@ -311,28 +265,19 @@ class FraudPeriodsIngestion:
             ]
         )
 
-        invalid_mask = (
-            dataframe["fraud_start"]
-            > dataframe["fraud_end"]
-        )
+        invalid_mask = dataframe["fraud_start"] > dataframe["fraud_end"]
 
-        self.invalid_periods = (
-            invalid_mask.sum()
-        )
+        self.invalid_periods = invalid_mask.sum()
 
-        dataframe = dataframe.loc[
-            ~invalid_mask
-        ]
+        dataframe = dataframe.loc[~invalid_mask]
 
-        self.duplicate_periods = (
-            dataframe.duplicated(
-                subset=[
-                    "cik",
-                    "fraud_start",
-                    "fraud_end",
-                ]
-            ).sum()
-        )
+        self.duplicate_periods = dataframe.duplicated(
+            subset=[
+                "cik",
+                "fraud_start",
+                "fraud_end",
+            ]
+        ).sum()
 
         dataframe = dataframe.drop_duplicates(
             subset=[
@@ -342,16 +287,13 @@ class FraudPeriodsIngestion:
             ]
         )
 
-        self.rows_written = len(
-            dataframe
-        )
+        self.rows_written = len(dataframe)
 
-        logger.info(
-            "Validation successful."
-        )
+        logger.info("Validation successful.")
 
         return dataframe
         # ============================================================
+
     # Save Dataset
     # ============================================================
 
@@ -363,9 +305,7 @@ class FraudPeriodsIngestion:
         Save the fraud periods dataset.
         """
 
-        logger.info(
-            "Writing fraud periods dataset..."
-        )
+        logger.info("Writing fraud periods dataset...")
 
         self.OUTPUT_FILE.parent.mkdir(
             parents=True,
@@ -383,9 +323,7 @@ class FraudPeriodsIngestion:
             compression="snappy",
         )
 
-        logger.info(
-            "Fraud periods written to:"
-        )
+        logger.info("Fraud periods written to:")
 
         logger.info(
             "%s",
@@ -404,22 +342,14 @@ class FraudPeriodsIngestion:
         """
 
         return {
-            "rows_read":
-                self.rows_read,
-            "rows_written":
-                self.rows_written,
-            "missing_cik":
-                int(self.missing_cik),
-            "missing_fraud_start":
-                int(self.missing_start),
-            "missing_fraud_end":
-                int(self.missing_end),
-            "invalid_periods":
-                int(self.invalid_periods),
-            "duplicate_periods":
-                int(self.duplicate_periods),
-            "output_columns":
-                self.OUTPUT_COLUMNS,
+            "rows_read": self.rows_read,
+            "rows_written": self.rows_written,
+            "missing_cik": int(self.missing_cik),
+            "missing_fraud_start": int(self.missing_start),
+            "missing_fraud_end": int(self.missing_end),
+            "invalid_periods": int(self.invalid_periods),
+            "duplicate_periods": int(self.duplicate_periods),
+            "output_columns": self.OUTPUT_COLUMNS,
         }
 
     def write_report(
@@ -429,9 +359,7 @@ class FraudPeriodsIngestion:
         Write the ingestion report.
         """
 
-        logger.info(
-            "Writing fraud period report..."
-        )
+        logger.info("Writing fraud period report...")
 
         self.REPORT_FILE.parent.mkdir(
             parents=True,
@@ -443,7 +371,6 @@ class FraudPeriodsIngestion:
             "w",
             encoding="utf-8",
         ) as file:
-
             json.dump(
                 self.report(),
                 file,
@@ -452,9 +379,7 @@ class FraudPeriodsIngestion:
                 default=str,
             )
 
-        logger.info(
-            "Fraud period report written to:"
-        )
+        logger.info("Fraud period report written to:")
 
         logger.info(
             "%s",
@@ -477,7 +402,6 @@ class FraudPeriodsIngestion:
         logger.info("=" * 70)
 
         for key, value in self.report().items():
-
             logger.info(
                 "%s: %s",
                 key,
@@ -486,6 +410,7 @@ class FraudPeriodsIngestion:
 
         logger.info("=" * 70)
         # ============================================================
+
     # Pipeline
     # ============================================================
 
@@ -498,9 +423,7 @@ class FraudPeriodsIngestion:
 
         logger.info("=" * 70)
 
-        logger.info(
-            "Starting fraud period ingestion..."
-        )
+        logger.info("Starting fraud period ingestion...")
 
         dataframe = self.load_dataset()
 
@@ -520,9 +443,7 @@ class FraudPeriodsIngestion:
 
         self.log_summary()
 
-        logger.info(
-            "Fraud period ingestion completed successfully."
-        )
+        logger.info("Fraud period ingestion completed successfully.")
 
         logger.info("=" * 70)
 
@@ -530,6 +451,7 @@ class FraudPeriodsIngestion:
 # ============================================================
 # Public API
 # ============================================================
+
 
 def ingest_labels() -> None:
     """
@@ -550,5 +472,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-
     main()

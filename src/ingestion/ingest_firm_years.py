@@ -20,16 +20,16 @@ This module DOES NOT
 """
 
 from __future__ import annotations
+
 import json
-import ijson
 from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
+import ijson
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -40,25 +40,13 @@ class FirmYearsIngestion:
     Ingest and combine the FinNLP firm-year datasets.
     """
 
-    FIRM_YEARS_FILE = (
-        settings.FINNLP_DIR
-        / "firm_years.json"
-    )
+    FIRM_YEARS_FILE = settings.FINNLP_DIR / "firm_years.json"
 
-    LABEL_FIRM_YEARS_FILE = (
-        settings.FINNLP_DIR
-        / "firm_years_labels.json"
-    )
+    LABEL_FIRM_YEARS_FILE = settings.FINNLP_DIR / "firm_years_labels.json"
 
-    OUTPUT_FILE = (
-        settings.INTERIM_DIR
-        / "firm_years_combined.parquet"
-    )
+    OUTPUT_FILE = settings.INTERIM_DIR / "firm_years_combined.parquet"
 
-    REPORT_FILE = (
-        settings.INTERIM_VALIDATED_DIR
-        / "firm_years_ingestion_report.json"
-    )
+    REPORT_FILE = settings.INTERIM_VALIDATED_DIR / "firm_years_ingestion_report.json"
 
     REQUIRED_COLUMNS = [
         "cik",
@@ -71,9 +59,6 @@ class FirmYearsIngestion:
     ]
 
     def __init__(self) -> None:
-
-
-
         self.firm_year_rows = 0
         self.label_rows = 0
         self.total_rows = 0
@@ -84,7 +69,10 @@ class FirmYearsIngestion:
     # Loading
     # ============================================================
 
-    def load_dataset(self,dataset_path: Path,) -> pd.DataFrame:
+    def load_dataset(
+        self,
+        dataset_path: Path,
+    ) -> pd.DataFrame:
         """
         Load a FinNLP JSON dataset using streaming.
 
@@ -112,12 +100,10 @@ class FirmYearsIngestion:
             dataset_path,
             "rb",
         ) as file:
-
             for record in ijson.items(
                 file,
                 "item",
             ):
-
                 records.append(record)
 
         dataframe = pd.DataFrame.from_records(
@@ -151,18 +137,18 @@ class FirmYearsIngestion:
         ]
 
         if missing_columns:
-
-            raise ValueError(
-                f"{dataset_name} is missing columns: "
-                f"{missing_columns}"
-            )
+            raise ValueError(f"{dataset_name} is missing columns: {missing_columns}")
 
         logger.info(
             "%s contains all required columns.",
             dataset_name,
         )
 
-    def validate_schema(self,firm_years: pd.DataFrame,label_firm_years: pd.DataFrame,) -> None:
+    def validate_schema(
+        self,
+        firm_years: pd.DataFrame,
+        label_firm_years: pd.DataFrame,
+    ) -> None:
         """
         Compare schemas of both datasets.
 
@@ -178,17 +164,14 @@ class FirmYearsIngestion:
         so the ingestion report captures them.
         """
 
-        left  = set(firm_years.columns)
+        left = set(firm_years.columns)
         right = set(label_firm_years.columns)
 
-        only_in_left  = sorted(left - right)
+        only_in_left = sorted(left - right)
         only_in_right = sorted(right - left)
 
         if only_in_left or only_in_right:
-
-            logger.warning(
-                "Schema difference detected."
-            )
+            logger.warning("Schema difference detected.")
 
             logger.warning(
                 "Only in firm_years: %s",
@@ -200,21 +183,17 @@ class FirmYearsIngestion:
                 only_in_right,
             )
 
-            logger.warning(
-                "pd.concat will fill missing "
-                "columns with NaN."
-            )
+            logger.warning("pd.concat will fill missing columns with NaN.")
 
             self.schema_match = False
 
         else:
-
             logger.info(
-                "Schema validation successful. "
-                "Both datasets have identical columns."
+                "Schema validation successful. Both datasets have identical columns."
             )
 
             self.schema_match = True
+
     # ============================================================
     # Combine Datasets
     # ============================================================
@@ -235,9 +214,7 @@ class FirmYearsIngestion:
         src/preprocessing/deduplicate.py.
         """
 
-        logger.info(
-            "Combining firm-year datasets..."
-        )
+        logger.info("Combining firm-year datasets...")
 
         self.firm_year_rows = len(firm_years)
         self.label_rows = len(label_firm_years)
@@ -272,9 +249,7 @@ class FirmYearsIngestion:
         Save the combined dataset as Parquet.
         """
 
-        logger.info(
-            "Writing combined dataset..."
-        )
+        logger.info("Writing combined dataset...")
 
         table = pa.Table.from_pandas(
             dataframe,
@@ -287,9 +262,7 @@ class FirmYearsIngestion:
             compression="snappy",
         )
 
-        logger.info(
-            "Combined dataset written to:"
-        )
+        logger.info("Combined dataset written to:")
 
         logger.info(
             "%s",
@@ -306,18 +279,12 @@ class FirmYearsIngestion:
         """
 
         return {
-            "firm_year_records":
-                self.firm_year_rows,
-            "label_firm_year_records":
-                self.label_rows,
-            "combined_records":
-                self.total_rows,
-            "schema_match":
-                self.schema_match,
-            "deduplication_performed":
-                False,
-            "deduplication_stage":
-                "src/preprocessing/deduplicate.py",
+            "firm_year_records": self.firm_year_rows,
+            "label_firm_year_records": self.label_rows,
+            "combined_records": self.total_rows,
+            "schema_match": self.schema_match,
+            "deduplication_performed": False,
+            "deduplication_stage": "src/preprocessing/deduplicate.py",
         }
 
     def write_report(
@@ -327,16 +294,13 @@ class FirmYearsIngestion:
         Write the ingestion report.
         """
 
-        logger.info(
-            "Writing ingestion report..."
-        )
+        logger.info("Writing ingestion report...")
 
         with open(
             self.REPORT_FILE,
             "w",
             encoding="utf-8",
         ) as file:
-
             json.dump(
                 self.report(),
                 file,
@@ -344,15 +308,14 @@ class FirmYearsIngestion:
                 ensure_ascii=False,
             )
 
-        logger.info(
-            "Ingestion report written to:"
-        )
+        logger.info("Ingestion report written to:")
 
         logger.info(
             "%s",
             self.REPORT_FILE,
         )
         # ============================================================
+
     # Summary
     # ============================================================
 
@@ -368,7 +331,6 @@ class FirmYearsIngestion:
         logger.info("=" * 70)
 
         for key, value in self.report().items():
-
             logger.info(
                 "%s: %s",
                 key,
@@ -390,9 +352,7 @@ class FirmYearsIngestion:
 
         logger.info("=" * 70)
 
-        logger.info(
-            "Starting firm-year ingestion..."
-        )
+        logger.info("Starting firm-year ingestion...")
 
         # --------------------------------------------------------
         # Load datasets
@@ -446,14 +406,16 @@ class FirmYearsIngestion:
 
         self.log_summary()
 
-        logger.info(
-            "Firm-year ingestion completed successfully."
-        )
+        logger.info("Firm-year ingestion completed successfully.")
 
         logger.info("=" * 70)
+
     # ============================================================
+
+
 # Public API
 # ============================================================
+
 
 def ingest_firm_years() -> None:
     """
@@ -474,5 +436,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-
     main()

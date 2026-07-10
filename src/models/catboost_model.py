@@ -1,2 +1,1 @@
-﻿"""Module: catboost_model."""
-
+"""Module: catboost_model."""

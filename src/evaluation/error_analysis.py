@@ -1,2 +1,1 @@
-﻿"""Module: error_analysis."""
-
+"""Module: error_analysis."""

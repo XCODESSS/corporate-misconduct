@@ -1,2 +1,1 @@
-﻿"""Module: train_models."""
-
+"""Module: train_models."""

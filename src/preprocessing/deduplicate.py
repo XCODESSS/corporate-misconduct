@@ -1,4 +1,4 @@
-﻿"""
+"""
 Remove duplicate firm-year filings.
 
 Responsibilities
@@ -16,10 +16,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -108,15 +107,22 @@ class Deduplicator:
         parquet = pq.ParquetFile(self.INPUT_FILE)
         writer = None
         try:
-            for batch_no, batch in enumerate(parquet.iter_batches(batch_size=4096), start=1):
+            for batch_no, batch in enumerate(
+                parquet.iter_batches(batch_size=4096), start=1
+            ):
                 table = self.process_batch(batch)
                 if table.num_rows:
                     if writer is None:
-                        writer = pq.ParquetWriter(self.OUTPUT_FILE, table.schema, compression="snappy")
+                        writer = pq.ParquetWriter(
+                            self.OUTPUT_FILE, table.schema, compression="snappy"
+                        )
                     writer.write_table(table)
                 logger.info(
                     "Batch %d | Read=%d Written=%d Duplicates=%d",
-                    batch_no, self.rows_read, self.rows_written, self.duplicate_rows
+                    batch_no,
+                    self.rows_read,
+                    self.rows_written,
+                    self.duplicate_rows,
                 )
         finally:
             if writer:

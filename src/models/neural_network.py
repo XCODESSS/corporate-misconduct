@@ -1,2 +1,1 @@
-﻿"""Module: neural_network."""
-
+"""Module: neural_network."""

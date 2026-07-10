@@ -36,9 +36,7 @@ AAER_FILE = FINNLP_DIR / "aaer_mark5.csv"
 
 LM_DIR = RAW_DIR / "lm"
 
-LM_SUMMARIES_FILE = (
-    LM_DIR / "Loughran-McDonald_10X_Summaries_1993-2025.csv"
-)
+LM_SUMMARIES_FILE = LM_DIR / "Loughran-McDonald_10X_Summaries_1993-2025.csv"
 
 # =============================================================================
 # Intermediate Outputs

@@ -1,4 +1,4 @@
-﻿import pandas as pd
+import pandas as pd
 
 df = pd.read_csv(
     r"D:\coperate-misconduct-warning\data\raw\finnlp_dataset\aaer_mark5.csv",
@@ -7,7 +7,7 @@ df = pd.read_csv(
     skiprows=2,
     encoding="utf-8",
     on_bad_lines="skip",
-    quoting=1
+    quoting=1,
 )
 
 print(f"Shape: {df.shape}")

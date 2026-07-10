@@ -1,2 +1,1 @@
-﻿"""Module: test_pipeline."""
-
+"""Module: test_pipeline."""

@@ -1,2 +1,1 @@
-﻿"""Module: merge_features."""
-
+"""Module: merge_features."""

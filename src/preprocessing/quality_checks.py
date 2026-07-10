@@ -1,4 +1,4 @@
-﻿"""
+"""
 Quality checks for the modeling dataset.
 
 Responsibilities
@@ -20,18 +20,15 @@ This module DOES NOT
 
 from __future__ import annotations
 
-
 import json
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,20 +39,11 @@ class QualityChecker:
     Apply dataset quality filters prior to modeling.
     """
 
-    INPUT_FILE = (
-    settings.INTERIM_CLEANED_DIR
-    / "normalized_firm_years.parquet"
- )
+    INPUT_FILE = settings.INTERIM_CLEANED_DIR / "normalized_firm_years.parquet"
 
-    OUTPUT_FILE = (
-        settings.INTERIM_CLEANED_DIR
-        / "quality_checked_firm_years.parquet"
-    )
+    OUTPUT_FILE = settings.INTERIM_CLEANED_DIR / "quality_checked_firm_years.parquet"
 
-    REPORT_FILE = (
-        settings.INTERIM_VALIDATED_DIR
-        / "quality_check_report.json"
-    )
+    REPORT_FILE = settings.INTERIM_VALIDATED_DIR / "quality_check_report.json"
 
     MIN_WORDS = 200
 
@@ -65,18 +53,17 @@ class QualityChecker:
         "10-KT/A",
     }
     REFERENCE_PATTERNS = (
-    "incorporated herein by reference",
-    "incorporated by reference",
-    "management's review",
-    "management's discussion",
-    "annual report",
-    "appearing on pages",
-    "set forth on pages",
-    "exhibit 13",
-)
+        "incorporated herein by reference",
+        "incorporated by reference",
+        "management's review",
+        "management's discussion",
+        "annual report",
+        "appearing on pages",
+        "set forth on pages",
+        "exhibit 13",
+    )
 
     def __init__(self) -> None:
-
         self.rows_read = 0
         self.rows_written = 0
 
@@ -105,6 +92,7 @@ class QualityChecker:
                 )
             )
         )
+
     @classmethod
     def is_reference_only_mda(
         cls,
@@ -124,10 +112,7 @@ class QualityChecker:
         if cls.word_count(text) >= cls.MIN_WORDS:
             return False
 
-        matches = sum(
-            pattern in text
-            for pattern in cls.REFERENCE_PATTERNS
-        )
+        matches = sum(pattern in text for pattern in cls.REFERENCE_PATTERNS)
 
         return matches >= 2
 
@@ -152,16 +137,13 @@ class QualityChecker:
         )
 
         for fmt in formats:
-
             try:
-
                 return datetime.strptime(
                     date_value,
                     fmt,
                 ).year
 
             except ValueError:
-
                 continue
 
         return None
@@ -174,7 +156,6 @@ class QualityChecker:
         self,
         record: dict[str, Any],
     ) -> bool:
-
         keep = True
 
         mda = record.get("mda", "")
@@ -182,59 +163,48 @@ class QualityChecker:
         word_count = self.word_count(mda)
 
         if word_count < self.MIN_WORDS:
-
             if self.is_reference_only_mda(mda):
-
                 self.reference_only_removed += 1
 
             else:
-
                 self.short_mda_removed += 1
 
             keep = False
 
-        filing_type = (
-            record.get("filing_type", "")
-            .strip()
-            .upper()
-        )
+        filing_type = record.get("filing_type", "").strip().upper()
 
         if filing_type in self.EXCLUDED_FILINGS:
-
             self.amended_removed += 1
 
             keep = False
 
-        year = self.parse_year(
-            record.get("filing_date")
-        )
+        year = self.parse_year(record.get("filing_date"))
 
         if year is None or year < 1993:
-
             self.pre1993_removed += 1
 
             keep = False
 
         return keep
         # ============================================================
+
     # Batch Processing
     # ============================================================
 
-    def process_batch(self,batch: pa.RecordBatch,schema: pa.Schema | None = None,) -> pa.Table:
+    def process_batch(
+        self,
+        batch: pa.RecordBatch,
+        schema: pa.Schema | None = None,
+    ) -> pa.Table:
         """
         Apply quality filters to a single batch.
         """
 
-        records = (
-            pa.Table
-            .from_batches([batch])
-            .to_pylist()
-        )
+        records = pa.Table.from_batches([batch]).to_pylist()
 
         filtered_records = []
 
         for record in records:
-
             self.rows_read += 1
 
             if not self.should_keep(record):
@@ -244,11 +214,16 @@ class QualityChecker:
             self.rows_written += 1
 
         if not filtered_records:
-            return pa.table({}) if schema is None else pa.table(
-                {field.name: pa.array([], type=field.type) for field in schema}
+            return (
+                pa.table({})
+                if schema is None
+                else pa.table(
+                    {field.name: pa.array([], type=field.type) for field in schema}
+                )
             )
 
         import pandas as pd
+
         frame = pd.DataFrame.from_records(filtered_records)
 
         if schema is not None:
@@ -262,9 +237,10 @@ class QualityChecker:
             frame,
             preserve_index=False,
         )
-    #============================================================
-    #quality checker
-    #============================================================
+
+    # ============================================================
+    # quality checker
+    # ============================================================
     @staticmethod
     def build_schema() -> pa.Schema:
         """
@@ -272,25 +248,27 @@ class QualityChecker:
         Prevents null-type inference on sparse columns.
         """
 
-        return pa.schema([
-            pa.field("cik",                 pa.string()),
-            pa.field("name",                pa.string()),
-            pa.field("city",                pa.string()),
-            pa.field("state",               pa.string()),
-            pa.field("sic",                 pa.string()),
-            pa.field("incorp_state",        pa.string()),
-            pa.field("filing_type",         pa.string()),
-            pa.field("fye",                 pa.string()),
-            pa.field("filing_date",         pa.string()),
-            pa.field("reporting_date",      pa.timestamp("us")),
-            pa.field("url",                 pa.string()),
-            pa.field("mda",                 pa.string()),
-            pa.field("fraudulent",          pa.int64()),
-            pa.field("matched_fraud_start", pa.timestamp("us")),
-            pa.field("matched_fraud_end",   pa.timestamp("us")),
-            pa.field("certainty_start",     pa.float64()),
-            pa.field("certainty_end",       pa.float64()),
-        ])
+        return pa.schema(
+            [
+                pa.field("cik", pa.string()),
+                pa.field("name", pa.string()),
+                pa.field("city", pa.string()),
+                pa.field("state", pa.string()),
+                pa.field("sic", pa.string()),
+                pa.field("incorp_state", pa.string()),
+                pa.field("filing_type", pa.string()),
+                pa.field("fye", pa.string()),
+                pa.field("filing_date", pa.string()),
+                pa.field("reporting_date", pa.timestamp("us")),
+                pa.field("url", pa.string()),
+                pa.field("mda", pa.string()),
+                pa.field("fraudulent", pa.int64()),
+                pa.field("matched_fraud_start", pa.timestamp("us")),
+                pa.field("matched_fraud_end", pa.timestamp("us")),
+                pa.field("certainty_start", pa.float64()),
+                pa.field("certainty_end", pa.float64()),
+            ]
+        )
 
     # ============================================================
     # Pipeline
@@ -303,30 +281,23 @@ class QualityChecker:
 
         logger.info("=" * 70)
 
-        logger.info(
-            "Starting quality checks..."
-        )
+        logger.info("Starting quality checks...")
 
-        logger.info(
-            "Reading normalized dataset..."
-        )
+        logger.info("Reading normalized dataset...")
 
-        parquet = pq.ParquetFile(
-            self.INPUT_FILE
-        )
+        parquet = pq.ParquetFile(self.INPUT_FILE)
 
         try:
             writer = None
             schema = self.build_schema()
 
-            for batch_number, batch in enumerate(parquet.iter_batches(batch_size=256), start=1):
-
+            for batch_number, batch in enumerate(
+                parquet.iter_batches(batch_size=256), start=1
+            ):
                 table = self.process_batch(batch, schema)
 
                 if table.num_rows > 0:
-
                     if writer is None:
-
                         writer = pq.ParquetWriter(
                             where=self.OUTPUT_FILE,
                             schema=schema,
@@ -343,14 +314,10 @@ class QualityChecker:
                 )
 
         finally:
-
             if writer is not None:
-
                 writer.close()
 
-        logger.info(
-            "Quality checks complete."
-        )
+        logger.info("Quality checks complete.")
 
         self.validate_output()
 
@@ -369,43 +336,22 @@ class QualityChecker:
         Validate the filtered dataset.
         """
 
-        logger.info(
-            "Validating filtered dataset..."
-        )
+        logger.info("Validating filtered dataset...")
 
-        parquet = pq.ParquetFile(
-            self.OUTPUT_FILE
-        )
+        parquet = pq.ParquetFile(self.OUTPUT_FILE)
 
         rows = 0
 
-        for batch in parquet.iter_batches(
-            batch_size=4096
-        ):
-
+        for batch in parquet.iter_batches(batch_size=4096):
             rows += batch.num_rows
 
-            records = (
-                pa.Table
-                .from_batches([batch])
-                .to_pylist()
-            )
+            records = pa.Table.from_batches([batch]).to_pylist()
 
             for record in records:
-
                 # Word count
 
-                if (
-                    self.word_count(
-                        record.get("mda", "")
-                    )
-                    < self.MIN_WORDS
-                ):
-
-                    raise ValueError(
-                        "Short MD&A found "
-                        "after filtering."
-                    )
+                if self.word_count(record.get("mda", "")) < self.MIN_WORDS:
+                    raise ValueError("Short MD&A found after filtering.")
 
                 # Filing type
 
@@ -418,48 +364,22 @@ class QualityChecker:
                     .upper()
                 )
 
-                if (
-                    filing_type
-                    in self.EXCLUDED_FILINGS
-                ):
-
-                    raise ValueError(
-                        "Amended filing "
-                        "found after filtering."
-                    )
+                if filing_type in self.EXCLUDED_FILINGS:
+                    raise ValueError("Amended filing found after filtering.")
 
                 # Filing year
 
-                year = self.parse_year(
-                    record.get(
-                        "filing_date"
-                    )
-                )
+                year = self.parse_year(record.get("filing_date"))
 
-                if (
-                    year is None
-                    or year < 1993
-                ):
-
-                    raise ValueError(
-                        "Pre-1993 filing "
-                        "found after filtering."
-                    )
+                if year is None or year < 1993:
+                    raise ValueError("Pre-1993 filing found after filtering.")
 
         if rows != self.rows_written:
+            raise ValueError(("Output row count does not match written row count."))
 
-            raise ValueError(
-                (
-                    "Output row count "
-                    "does not match "
-                    "written row count."
-                )
-            )
-
-        logger.info(
-            "Validation successful."
-        )
+        logger.info("Validation successful.")
         # ============================================================
+
     # Reporting
     # ============================================================
 
@@ -468,42 +388,18 @@ class QualityChecker:
         Build the quality-check report.
         """
 
-        total_removed = (
-            self.rows_read
-            - self.rows_written
-        )
+        total_removed = self.rows_read - self.rows_written
 
         return {
-
-            "input_records":
-                self.rows_read,
-
-            "output_records":
-                self.rows_written,
-
-            "total_removed":
-                total_removed,
-
-            "removed_short_mda":
-                self.short_mda_removed,
-
-            "removed_amended_filings":
-                self.amended_removed,
-
-            "removed_pre1993":
-                self.pre1993_removed,
-            
-            "removed_reference_only_mda":
-                self.reference_only_removed,
-
-            "minimum_word_count":
-                self.MIN_WORDS,
-
-            "excluded_filing_types":
-                sorted(
-                    self.EXCLUDED_FILINGS
-                ),
-
+            "input_records": self.rows_read,
+            "output_records": self.rows_written,
+            "total_removed": total_removed,
+            "removed_short_mda": self.short_mda_removed,
+            "removed_amended_filings": self.amended_removed,
+            "removed_pre1993": self.pre1993_removed,
+            "removed_reference_only_mda": self.reference_only_removed,
+            "minimum_word_count": self.MIN_WORDS,
+            "excluded_filing_types": sorted(self.EXCLUDED_FILINGS),
         }
 
     def write_report(self) -> None:
@@ -511,16 +407,13 @@ class QualityChecker:
         Save the quality-check report.
         """
 
-        logger.info(
-            "Writing quality report..."
-        )
+        logger.info("Writing quality report...")
 
         with open(
             self.REPORT_FILE,
             "w",
             encoding="utf-8",
         ) as file:
-
             json.dump(
                 self.report(),
                 file,
@@ -528,9 +421,7 @@ class QualityChecker:
                 ensure_ascii=False,
             )
 
-        logger.info(
-            "Quality report written to:"
-        )
+        logger.info("Quality report written to:")
 
         logger.info(
             "%s",
@@ -544,62 +435,39 @@ class QualityChecker:
     def summary(
         self,
     ) -> dict[str, int]:
-
         return {
-
-            "rows_read":
-                self.rows_read,
-
-            "rows_written":
-                self.rows_written,
-
-            "removed_short_mda":
-                self.short_mda_removed,
-
-            "removed_amended":
-                self.amended_removed,
-
-            "removed_pre1993":
-                self.pre1993_removed,
-
-            "total_removed":
-                self.rows_read
-                - self.rows_written,
-            "removed_reference_only":
-                self.reference_only_removed,
-
+            "rows_read": self.rows_read,
+            "rows_written": self.rows_written,
+            "removed_short_mda": self.short_mda_removed,
+            "removed_amended": self.amended_removed,
+            "removed_pre1993": self.pre1993_removed,
+            "total_removed": self.rows_read - self.rows_written,
+            "removed_reference_only": self.reference_only_removed,
         }
 
     def log_summary(
         self,
     ) -> None:
+        logger.info("=" * 70)
 
-        logger.info(
-            "=" * 70
-        )
+        logger.info("Quality Check Summary")
 
-        logger.info(
-            "Quality Check Summary"
-        )
-
-        logger.info(
-            "=" * 70
-        )
+        logger.info("=" * 70)
 
         stats = self.summary()
 
         for key, value in stats.items():
-
             logger.info(
                 "%s: %s",
                 key,
                 value,
             )
 
-        logger.info(
-            "=" * 70
-        )
+        logger.info("=" * 70)
+
     # ============================================================
+
+
 # Public API
 # ============================================================
 
@@ -630,9 +498,7 @@ def main() -> None:
 
     output = quality_check_dataset()
 
-    logger.info(
-        "Quality-checked dataset written to:"
-    )
+    logger.info("Quality-checked dataset written to:")
 
     logger.info(
         "%s",

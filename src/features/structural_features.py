@@ -1,2 +1,1 @@
-﻿"""Module: structural_features."""
-
+"""Module: structural_features."""

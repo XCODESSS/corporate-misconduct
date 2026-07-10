@@ -1,2 +1,1 @@
-﻿"""Module: test_models."""
-
+"""Module: test_models."""

@@ -24,8 +24,10 @@ import json
 from pathlib import Path
 from typing import Any, Iterator
 
+import configs.settings as settings
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.metrics import (
     average_precision_score,
     balanced_accuracy_score,
@@ -36,12 +38,25 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-
-import configs.settings as settings
 from src.evaluation.calibration import ProbabilityCalibrator, evaluate_calibration
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+DEFAULT_DECISION_THRESHOLD = 0.5
+DEFAULT_CALIBRATION_METHOD = "sigmoid"
+DEFAULT_CALIBRATION_CV = 5
+THRESHOLD_CANDIDATES = np.arange(0.01, 1.00, 0.01)
+METRIC_NAMES = (
+    "roc_auc",
+    "pr_auc",
+    "f1",
+    "precision",
+    "recall",
+    "mcc",
+    "balanced_acc",
+    "brier_score",
+)
 
 
 class WalkForwardCV:
@@ -73,7 +88,6 @@ class WalkForwardCV:
         min_fraud_per_fold: int = 30,
         output_dir: Path | None = None,
     ) -> None:
-
         self.min_fraud_per_fold = min_fraud_per_fold
         self.output_dir = output_dir or self.OUTPUT_DIR
         self.fold_results: list[dict[str, Any]] = []
@@ -98,9 +112,7 @@ class WalkForwardCV:
         """
 
         if len(years) != len(y):
-            raise ValueError(
-                "years and y must have the same length."
-            )
+            raise ValueError("years and y must have the same length.")
 
         unique_years = sorted(np.unique(years))
 
@@ -136,7 +148,7 @@ class WalkForwardCV:
         self,
         y_true: np.ndarray,
         y_score: np.ndarray,
-        default_threshold: float = 0.5,
+        default_threshold: float = DEFAULT_DECISION_THRESHOLD,
     ) -> float:
         """
         Find the threshold that maximizes F1 score.
@@ -145,12 +157,10 @@ class WalkForwardCV:
         if len(np.unique(y_true)) < 2:
             return default_threshold
 
-        thresholds = np.arange(0.01, 1.00, 0.01)
-
         best_threshold = default_threshold
         best_f1 = -1.0
 
-        for threshold in thresholds:
+        for threshold in THRESHOLD_CANDIDATES:
             y_pred = (y_score >= threshold).astype(int)
 
             score = f1_score(
@@ -171,16 +181,16 @@ class WalkForwardCV:
 
     def evaluate_fold(
         self,
-        estimator,
-        X,
-        y,
-        train_idx,
-        test_idx,
-        test_year,
+        estimator: Any,
+        X: np.ndarray,
+        y: np.ndarray,
+        train_idx: np.ndarray,
+        test_idx: np.ndarray,
+        test_year: int,
         decision_threshold: float,
         calibrate: bool = False,
-        calibration_method: str = "sigmoid",
-        calibration_cv: int = 5,
+        calibration_method: str = DEFAULT_CALIBRATION_METHOD,
+        calibration_cv: int = DEFAULT_CALIBRATION_CV,
         fit_raw_reference: bool = True,
         optimize_threshold: bool = True,
     ) -> dict[str, Any]:
@@ -215,66 +225,34 @@ class WalkForwardCV:
         Returns a dict of metrics for this fold.
         """
 
-        import sklearn.base as skbase
-
-        model = skbase.clone(estimator)
-
         X_train, y_train = X[train_idx], y[train_idx]
         X_test, y_test = X[test_idx], y[test_idx]
 
-        if len(np.unique(y_train)) < 2:
+        if not self._has_both_classes(y_train):
             logger.warning(
                 "Skipping year=%d because training fold has only one class.",
                 test_year,
             )
             return {}
 
-        raw_brier = None
+        train_score, test_score, raw_brier = self._fit_and_score_fold(
+            estimator=estimator,
+            X_train=X_train,
+            y_train=y_train,
+            X_test=X_test,
+            y_test=y_test,
+            calibrate=calibrate,
+            calibration_method=calibration_method,
+            calibration_cv=calibration_cv,
+            fit_raw_reference=fit_raw_reference,
+        )
 
-        if calibrate:
-            if not hasattr(model, "predict_proba"):
-                raise AttributeError(
-                    "Calibration requires an estimator that implements "
-                    "predict_proba()."
-                )
-
-            if fit_raw_reference:
-                # Uncalibrated reference fit, for Brier comparison only.
-                raw_model = skbase.clone(estimator)
-                raw_model.fit(X_train, y_train)
-                raw_test_score = raw_model.predict_proba(X_test)[:, 1]
-                raw_brier = brier_score_loss(y_test, raw_test_score)
-
-            calibrator = ProbabilityCalibrator(
-                method=calibration_method,
-                cv=calibration_cv,
-            )
-            calibrator.fit(model, X_train, y_train)
-
-            train_score = calibrator.predict_proba(X_train)
-            test_score = calibrator.predict_proba(X_test)
-        else:
-            model.fit(X_train, y_train)
-
-            if hasattr(model, "predict_proba"):
-                train_score = model.predict_proba(X_train)[:, 1]
-                test_score = model.predict_proba(X_test)[:, 1]
-            elif hasattr(model, "decision_function"):
-                train_score = model.decision_function(X_train)
-                test_score = model.decision_function(X_test)
-            else:
-                raise AttributeError(
-                    "Estimator must implement predict_proba() or decision_function()."
-                )
-
-        if optimize_threshold:
-            best_threshold = self.find_best_threshold(
-                y_train,
-                train_score,
-                default_threshold=decision_threshold,
-            )
-        else:
-            best_threshold = decision_threshold
+        best_threshold = self._select_threshold(
+            y_train=y_train,
+            train_score=train_score,
+            default_threshold=decision_threshold,
+            should_optimize=optimize_threshold,
+        )
 
         logger.info(
             "Year %d | Optimal Threshold = %.2f",
@@ -283,86 +261,212 @@ class WalkForwardCV:
         )
 
         y_pred = (test_score >= best_threshold).astype(int)
-        y_score = test_score
-
-        try:
-            roc_auc = roc_auc_score(y_test, y_score)
-        except ValueError:
-            roc_auc = float("nan")
-
-        try:
-            pr_auc = average_precision_score(y_test, y_score)
-        except ValueError:
-            pr_auc = float("nan")
-
-        f1 = f1_score(y_test, y_pred, zero_division=0)
-        prec = precision_score(y_test, y_pred, zero_division=0)
-        rec = recall_score(y_test, y_pred, zero_division=0)
-        mcc = matthews_corrcoef(y_test, y_pred)
-        bal_acc = balanced_accuracy_score(y_test, y_pred)
-        brier = brier_score_loss(y_test, y_score)
-
-        prediction_df = pd.DataFrame(
-            {
-                "test_year": test_year,
-                "true_label": y_test,
-                "predicted_probability": y_score,
-                "predicted_label": y_pred,
-                "decision_threshold": best_threshold,
-            }
+        fold_metrics = self._calculate_fold_metrics(
+            y_test=y_test,
+            y_score=test_score,
+            y_pred=y_pred,
+            test_year=test_year,
+            train_size=len(train_idx),
+            decision_threshold=best_threshold,
+            calibrate=calibrate,
+            raw_brier=raw_brier,
+        )
+        self._record_predictions(
+            test_year=test_year,
+            y_test=y_test,
+            y_score=test_score,
+            y_pred=y_pred,
+            decision_threshold=best_threshold,
         )
 
-        self.fold_predictions.append(prediction_df)
+        if not calibrate:
+            return fold_metrics
 
-        fold_metrics = {
+        return self._record_calibration_metrics(fold_metrics, y_test, test_score)
+
+    @staticmethod
+    def _has_both_classes(labels: np.ndarray) -> bool:
+        return len(np.unique(labels)) == 2
+
+    def _fit_and_score_fold(
+        self,
+        estimator: Any,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_test: np.ndarray,
+        y_test: np.ndarray,
+        calibrate: bool,
+        calibration_method: str,
+        calibration_cv: int,
+        fit_raw_reference: bool,
+    ) -> tuple[np.ndarray, np.ndarray, float | None]:
+        if not calibrate:
+            fitted_model = clone(estimator).fit(X_train, y_train)
+            return (
+                self._predict_probabilities(fitted_model, X_train),
+                self._predict_probabilities(fitted_model, X_test),
+                None,
+            )
+
+        self._validate_calibration_estimator(estimator)
+        raw_brier = self._calculate_raw_brier(
+            estimator,
+            X_train,
+            y_train,
+            X_test,
+            y_test,
+            should_fit=fit_raw_reference,
+        )
+        calibrator = ProbabilityCalibrator(
+            method=calibration_method,
+            cv=calibration_cv,
+        ).fit(clone(estimator), X_train, y_train)
+        return (
+            calibrator.predict_proba(X_train),
+            calibrator.predict_proba(X_test),
+            raw_brier,
+        )
+
+    @staticmethod
+    def _predict_probabilities(model: Any, features: np.ndarray) -> np.ndarray:
+        if not hasattr(model, "predict_proba"):
+            raise AttributeError("Estimator must implement predict_proba().")
+        return model.predict_proba(features)[:, 1]
+
+    @staticmethod
+    def _validate_calibration_estimator(estimator: Any) -> None:
+        if not hasattr(estimator, "predict_proba"):
+            raise AttributeError(
+                "Calibration requires an estimator that implements predict_proba()."
+            )
+
+    def _calculate_raw_brier(
+        self,
+        estimator: Any,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_test: np.ndarray,
+        y_test: np.ndarray,
+        should_fit: bool,
+    ) -> float | None:
+        if not should_fit:
+            return None
+
+        raw_model = clone(estimator).fit(X_train, y_train)
+        raw_scores = self._predict_probabilities(raw_model, X_test)
+        return float(brier_score_loss(y_test, raw_scores))
+
+    def _select_threshold(
+        self,
+        y_train: np.ndarray,
+        train_score: np.ndarray,
+        default_threshold: float,
+        should_optimize: bool,
+    ) -> float:
+        if not should_optimize:
+            return default_threshold
+        return self.find_best_threshold(y_train, train_score, default_threshold)
+
+    def _calculate_fold_metrics(
+        self,
+        y_test: np.ndarray,
+        y_score: np.ndarray,
+        y_pred: np.ndarray,
+        test_year: int,
+        train_size: int,
+        decision_threshold: float,
+        calibrate: bool,
+        raw_brier: float | None,
+    ) -> dict[str, Any]:
+        has_both_test_classes = self._has_both_classes(y_test)
+        roc_auc = float("nan")
+        pr_auc = float("nan")
+        if has_both_test_classes:
+            roc_auc = float(roc_auc_score(y_test, y_score))
+            pr_auc = float(average_precision_score(y_test, y_score))
+
+        return {
             "test_year": test_year,
-            "train_n": len(train_idx),
-            "test_n": len(test_idx),
+            "train_n": train_size,
+            "test_n": len(y_test),
             "test_fraud_n": int(y_test.sum()),
-            "decision_threshold": best_threshold,
+            "decision_threshold": decision_threshold,
             "roc_auc": roc_auc,
             "pr_auc": pr_auc,
-            "f1": f1,
-            "precision": prec,
-            "recall": rec,
-            "mcc": mcc,
-            "balanced_acc": bal_acc,
-            "brier_score": brier,
+            "f1": f1_score(y_test, y_pred, zero_division=0),
+            "precision": precision_score(y_test, y_pred, zero_division=0),
+            "recall": recall_score(y_test, y_pred, zero_division=0),
+            "mcc": matthews_corrcoef(y_test, y_pred),
+            "balanced_acc": balanced_accuracy_score(y_test, y_pred),
+            "brier_score": brier_score_loss(y_test, y_score),
             "calibrated": calibrate,
             "raw_brier_score": raw_brier,
             "ece": None,
             "mce": None,
         }
 
-        if calibrate:
-            curve = evaluate_calibration(y_test, y_score)
-            curve["test_year"] = int(test_year)
-            self.calibration_curves.append(curve)
+    def _record_predictions(
+        self,
+        test_year: int,
+        y_test: np.ndarray,
+        y_score: np.ndarray,
+        y_pred: np.ndarray,
+        decision_threshold: float,
+    ) -> None:
+        prediction_frame = pd.DataFrame(
+            {
+                "test_year": test_year,
+                "true_label": y_test,
+                "predicted_probability": y_score,
+                "predicted_label": y_pred,
+                "decision_threshold": decision_threshold,
+            }
+        )
+        self.fold_predictions.append(prediction_frame)
 
-            fold_metrics["ece"] = curve["ece"]
-            fold_metrics["mce"] = curve["mce"]
+    def _record_calibration_metrics(
+        self,
+        fold_metrics: dict[str, Any],
+        y_test: np.ndarray,
+        y_score: np.ndarray,
+    ) -> dict[str, Any]:
+        calibration_metrics = evaluate_calibration(y_test, y_score)
+        self.calibration_curves.append(
+            {**calibration_metrics, "test_year": int(fold_metrics["test_year"])}
+        )
+        calibrated_metrics = {
+            **fold_metrics,
+            "ece": calibration_metrics["ece"],
+            "mce": calibration_metrics["mce"],
+        }
+        self._log_calibration_metrics(calibrated_metrics)
+        return calibrated_metrics
 
-            if raw_brier is not None:
-                logger.info(
-                    "Year %d | Brier raw=%.4f -> calibrated=%.4f (%s%.4f) | ECE=%.4f MCE=%.4f",
-                    test_year,
-                    raw_brier,
-                    brier,
-                    "+" if raw_brier - brier >= 0 else "",
-                    raw_brier - brier,
-                    curve["ece"],
-                    curve["mce"],
-                )
-            else:
-                logger.info(
-                    "Year %d | Brier calibrated=%.4f | ECE=%.4f MCE=%.4f",
-                    test_year,
-                    brier,
-                    curve["ece"],
-                    curve["mce"],
-                )
+    @staticmethod
+    def _log_calibration_metrics(fold_metrics: dict[str, Any]) -> None:
+        raw_brier = fold_metrics["raw_brier_score"]
+        calibrated_brier = fold_metrics["brier_score"]
+        if raw_brier is None:
+            logger.info(
+                "Year %d | Brier calibrated=%.4f | ECE=%.4f MCE=%.4f",
+                fold_metrics["test_year"],
+                calibrated_brier,
+                fold_metrics["ece"],
+                fold_metrics["mce"],
+            )
+            return
 
-        return fold_metrics
+        brier_improvement = raw_brier - calibrated_brier
+        logger.info(
+            "Year %d | Brier raw=%.4f -> calibrated=%.4f (%s%.4f) | ECE=%.4f MCE=%.4f",
+            fold_metrics["test_year"],
+            raw_brier,
+            calibrated_brier,
+            "+" if brier_improvement >= 0 else "",
+            brier_improvement,
+            fold_metrics["ece"],
+            fold_metrics["mce"],
+        )
 
     # ============================================================
     # Aggregation
@@ -379,24 +483,20 @@ class WalkForwardCV:
 
         df = pd.DataFrame(self.fold_results)
 
-        metric_cols = [
-            "roc_auc", "pr_auc", "f1",
-            "precision", "recall", "mcc",
-            "balanced_acc", "brier_score",
-        ]
-
         summary: dict[str, Any] = {
             "n_folds": len(df),
             "years_evaluated": df["test_year"].tolist(),
             "total_test_fraud": int(df["test_fraud_n"].sum()),
             "decision_threshold_mean": round(float(df["decision_threshold"].mean()), 6),
-            "decision_threshold_std": round(float(df["decision_threshold"].std(ddof=0)), 6),
+            "decision_threshold_std": round(
+                float(df["decision_threshold"].std(ddof=0)), 6
+            ),
         }
 
-        for col in metric_cols:
-            summary[col] = {
-                "mean": round(float(df[col].mean()), 6),
-                "std": round(float(df[col].std(ddof=0)), 6),
+        for metric_name in METRIC_NAMES:
+            summary[metric_name] = {
+                "mean": round(float(df[metric_name].mean()), 6),
+                "std": round(float(df[metric_name].std(ddof=0)), 6),
             }
 
         return summary
@@ -426,10 +526,7 @@ class WalkForwardCV:
             "Fold results saved to %s",
             fold_path,
         )
-        prediction_path = (
-            self.output_dir
-            / f"{model_name}_predictions.csv"
-        )
+        prediction_path = self.output_dir / f"{model_name}_predictions.csv"
 
         if self.fold_predictions:
             prediction_df = pd.concat(
@@ -452,8 +549,10 @@ class WalkForwardCV:
             )
 
         summary = self.aggregate_metrics()
-        self._extracted_from_save_results_98(
-            model_name, '_cv_summary.json', summary, "CV summary saved to %s"
+        self._write_json_report(
+            filename=f"{model_name}_cv_summary.json",
+            payload=summary,
+            log_message="CV summary saved to %s",
         )
         if self.calibration_curves:
             curves_path = self.output_dir / f"{model_name}_calibration_curves.json"
@@ -467,8 +566,8 @@ class WalkForwardCV:
                 cal_df = pd.DataFrame(calibrated_folds)
 
                 improvements = (
-                    (cal_df["raw_brier_score"] - cal_df["brier_score"]).dropna()
-                )
+                    cal_df["raw_brier_score"] - cal_df["brier_score"]
+                ).dropna()
 
                 calibration_summary: dict[str, Any] = {
                     "n_calibrated_folds": len(cal_df),
@@ -492,25 +591,36 @@ class WalkForwardCV:
                         "std": round(float(cal_df["raw_brier_score"].std(ddof=0)), 6),
                     }
                     calibration_summary["brier_improvement"] = {
-                        "mean": round(float(improvements.mean()), 6) if len(improvements) else None,
-                        "std": round(float(improvements.std(ddof=0)), 6) if len(improvements) else None,
+                        "mean": (
+                            round(float(improvements.mean()), 6)
+                            if len(improvements)
+                            else None
+                        ),
+                        "std": (
+                            round(float(improvements.std(ddof=0)), 6)
+                            if len(improvements)
+                            else None
+                        ),
                         "n_folds_improved": int((improvements > 0).sum()),
                         "n_folds_worsened": int((improvements < 0).sum()),
                     }
 
-                self._extracted_from_save_results_98(
-                    model_name,
-                    '_calibration_summary.json',
-                    calibration_summary,
-                    "Calibration summary saved to %s",
+                self._write_json_report(
+                    filename=f"{model_name}_calibration_summary.json",
+                    payload=calibration_summary,
+                    log_message="Calibration summary saved to %s",
                 )
 
-    # TODO Rename this here and in `save_results`
-    def _extracted_from_save_results_98(self, model_name, arg1, arg2, arg3):
-        cal_summary_path = self.output_dir / f"{model_name}{arg1}"
-        with open(cal_summary_path, "w", encoding="utf-8") as f:
-            json.dump(arg2, f, indent=4)
-        logger.info(arg3, cal_summary_path)
+    def _write_json_report(
+        self,
+        filename: str,
+        payload: dict[str, Any],
+        log_message: str,
+    ) -> None:
+        report_path = self.output_dir / filename
+        with open(report_path, "w", encoding="utf-8") as file_handle:
+            json.dump(payload, file_handle, indent=4)
+        logger.info(log_message, report_path)
 
     # ============================================================
     # Main Entry Point
@@ -529,6 +639,7 @@ class WalkForwardCV:
         calibration_cv: int = 5,
         fit_raw_reference: bool = True,
         optimize_threshold: bool = True,
+        persist_results: bool = True,
     ) -> dict[str, Any]:
         """
         Run walk-forward cross-validation.
@@ -612,7 +723,8 @@ class WalkForwardCV:
 
         summary = self.aggregate_metrics()
 
-        self.save_results(model_name)
+        if persist_results:
+            self.save_results(model_name)
 
         logger.info("=" * 70)
         logger.info("CV complete | n_folds=%d", summary.get("n_folds", 0))

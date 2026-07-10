@@ -1,4 +1,4 @@
-﻿"""
+"""
 Reusable file I/O utilities.
 
 This module centralizes reading and writing of common file formats
@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,6 +27,7 @@ logger = get_logger(__name__)
 # =============================================================================
 # JSON
 # =============================================================================
+
 
 def load_json(path: Path | str) -> Any:
     """
@@ -67,6 +67,7 @@ def save_json(data: Any, path: Path | str, indent: int = 4) -> None:
 # CSV
 # =============================================================================
 
+
 def load_csv(path: Path | str, **kwargs) -> pd.DataFrame:
     """
     Load a CSV file.
@@ -94,6 +95,7 @@ def save_csv(df: pd.DataFrame, path: Path | str, **kwargs) -> None:
 # Parquet
 # =============================================================================
 
+
 def load_parquet(path: Path | str) -> pd.DataFrame:
     """
     Load a Parquet file.
@@ -120,6 +122,7 @@ def save_parquet(df: pd.DataFrame, path: Path | str) -> None:
 # =============================================================================
 # Markdown
 # =============================================================================
+
 
 def save_markdown(text: str, path: Path | str) -> None:
     """

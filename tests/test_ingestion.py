@@ -1,2 +1,1 @@
-﻿"""Module: test_ingestion."""
-
+"""Module: test_ingestion."""

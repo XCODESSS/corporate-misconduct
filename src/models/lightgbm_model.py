@@ -1,2 +1,1 @@
-﻿"""Module: lightgbm_model."""
-
+"""Module: lightgbm_model."""

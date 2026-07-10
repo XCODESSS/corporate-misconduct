@@ -1,2 +1,1 @@
-﻿"""Module: metrics."""
-
+"""Module: metrics."""

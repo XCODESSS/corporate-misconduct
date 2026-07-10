@@ -1,4 +1,4 @@
-﻿"""
+"""
 Module: calibration.
 
 Responsibilities
@@ -23,12 +23,15 @@ from typing import Any, Literal
 import numpy as np
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.metrics import brier_score_loss
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 CalibrationMethod = Literal["sigmoid", "isotonic"]
+DEFAULT_CALIBRATION_BINS = 10
+MINIMUM_CALIBRATION_SPLITS = 2
+MINIMUM_PROBABILITY = 0.0
+MAXIMUM_PROBABILITY = 1.0
 
 
 class ProbabilityCalibrator:
@@ -62,6 +65,10 @@ class ProbabilityCalibrator:
     ) -> None:
         if method not in ("sigmoid", "isotonic"):
             raise ValueError(f"Unsupported calibration method: {method}")
+        if cv < MINIMUM_CALIBRATION_SPLITS:
+            raise ValueError(
+                f"cv must be at least {MINIMUM_CALIBRATION_SPLITS}; received {cv}."
+            )
 
         self.method = method
         self.cv = cv
@@ -81,15 +88,18 @@ class ProbabilityCalibrator:
         before passing it in — CalibratedClassifierCV owns fitting.
         """
 
-        n_pos = int(y_train.sum())
-        n_splits = min(self.cv, n_pos)
+        _validate_binary_labels(y_train)
+        positive_count = int(y_train.sum())
+        negative_count = len(y_train) - positive_count
+        n_splits = min(self.cv, positive_count, negative_count)
 
-        if n_splits < 2:
+        if n_splits < MINIMUM_CALIBRATION_SPLITS:
             logger.warning(
-                "Only %d positive samples in training fold; "
+                "Training fold has %d positive and %d negative samples; "
                 "cannot run %d-fold calibration. "
                 "Falling back to uncalibrated estimator.",
-                n_pos,
+                positive_count,
+                negative_count,
                 self.cv,
             )
             estimator.fit(X_train, y_train)
@@ -100,10 +110,10 @@ class ProbabilityCalibrator:
         if n_splits < self.cv:
             logger.warning(
                 "Reducing calibration folds from %d to %d "
-                "due to limited positive samples (%d) in training fold.",
+                "due to the smallest class having %d samples in the training fold.",
                 self.cv,
                 n_splits,
-                n_pos,
+                min(positive_count, negative_count),
             )
 
         self.calibrated_model = CalibratedClassifierCV(
@@ -131,7 +141,7 @@ class ProbabilityCalibrator:
 def compute_ece(
     y_true: np.ndarray,
     y_prob: np.ndarray,
-    n_bins: int = 10,
+    n_bins: int = DEFAULT_CALIBRATION_BINS,
 ) -> dict[str, float]:
     """
     Compute Expected Calibration Error (ECE) and Maximum Calibration
@@ -146,8 +156,7 @@ def compute_ece(
     ignored for MCE).
     """
 
-    y_true = np.asarray(y_true)
-    y_prob = np.asarray(y_prob)
+    y_true, y_prob = _validate_calibration_inputs(y_true, y_prob, n_bins)
 
     bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
     bin_ids = np.clip(np.digitize(y_prob, bin_edges[1:-1]), 0, n_bins - 1)
@@ -179,7 +188,7 @@ def compute_ece(
 def evaluate_calibration(
     y_true: np.ndarray,
     y_prob: np.ndarray,
-    n_bins: int = 10,
+    n_bins: int = DEFAULT_CALIBRATION_BINS,
 ) -> dict[str, Any]:
     """
     Compute Brier score, ECE/MCE, and reliability-curve data for a
@@ -197,6 +206,7 @@ def evaluate_calibration(
             A well-calibrated model has prob_true ~= prob_pred.
     """
 
+    y_true, y_prob = _validate_calibration_inputs(y_true, y_prob, n_bins)
     brier = brier_score_loss(y_true, y_prob)
     error_metrics = compute_ece(y_true, y_prob, n_bins=n_bins)
 
@@ -239,6 +249,16 @@ def compare_calibration(
     should be tracked, not hidden.
     """
 
+    y_true, y_prob_raw = _validate_calibration_inputs(
+        y_true,
+        y_prob_raw,
+        DEFAULT_CALIBRATION_BINS,
+    )
+    _, y_prob_calibrated = _validate_calibration_inputs(
+        y_true,
+        y_prob_calibrated,
+        DEFAULT_CALIBRATION_BINS,
+    )
     raw_brier = brier_score_loss(y_true, y_prob_raw)
     calibrated_brier = brier_score_loss(y_true, y_prob_calibrated)
 
@@ -247,3 +267,46 @@ def compare_calibration(
         "calibrated_brier_score": round(float(calibrated_brier), 6),
         "brier_improvement": round(float(raw_brier - calibrated_brier), 6),
     }
+
+
+def _validate_calibration_inputs(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    n_bins: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    _validate_bin_count(n_bins)
+    labels = np.asarray(y_true)
+    probabilities = np.asarray(y_prob)
+    _validate_matching_non_empty_arrays(labels, probabilities)
+    _validate_binary_labels(labels)
+    _validate_probability_range(probabilities)
+    return labels, probabilities
+
+
+def _validate_bin_count(n_bins: int) -> None:
+    if n_bins < 1:
+        raise ValueError("n_bins must be at least 1.")
+
+
+def _validate_matching_non_empty_arrays(
+    labels: np.ndarray,
+    probabilities: np.ndarray,
+) -> None:
+    if len(labels) == 0:
+        raise ValueError("Calibration inputs cannot be empty.")
+    if len(labels) != len(probabilities):
+        raise ValueError("y_true and y_prob must have the same length.")
+
+
+def _validate_binary_labels(labels: np.ndarray) -> None:
+    if not np.isin(labels, [0, 1]).all():
+        raise ValueError("y_true must contain only binary labels (0 and 1).")
+
+
+def _validate_probability_range(probabilities: np.ndarray) -> None:
+    if not np.isfinite(probabilities).all():
+        raise ValueError("y_prob must contain only finite values.")
+    if np.any(probabilities < MINIMUM_PROBABILITY) or np.any(
+        probabilities > MAXIMUM_PROBABILITY
+    ):
+        raise ValueError("y_prob values must be between 0.0 and 1.0.")

@@ -1,4 +1,4 @@
-﻿"""Validate raw FinNLP datasets without mutating source data.
+"""Validate raw FinNLP datasets without mutating source data.
 
 The validator checks file availability, schemas, row-level integrity, and
 cross-dataset consistency before preprocessing or feature engineering begins.
@@ -13,9 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-import ijson
-
 import configs.settings as settings
+import ijson
 from src.ingestion.load_finnlp_dataset import FinNLPDatasetLoader
 from src.utils.io import save_json
 from src.utils.logger import get_logger
@@ -122,9 +121,7 @@ class RawDataValidator:
     def save_report(self) -> Path:
         """Persist the raw validation report as JSON."""
 
-        output_path = (
-            settings.INTERIM_VALIDATED_DIR / "raw_validation_report.json"
-        )
+        output_path = settings.INTERIM_VALIDATED_DIR / "raw_validation_report.json"
         save_json(self.to_report(), output_path)
         logger.info("Validation report saved to %s", output_path)
         return output_path
@@ -326,8 +323,7 @@ class RawDataValidator:
         root_type = self._detect_json_root_type(self.paths.labels)
         if root_type != "array":
             summary.errors.append(
-                "firm_years_labels.json must be a JSON array, "
-                f"found {root_type}."
+                f"firm_years_labels.json must be a JSON array, found {root_type}."
             )
 
         seen_identifiers: set[Identifier] = set()
@@ -423,10 +419,7 @@ class RawDataValidator:
                 newline="",
             ) as csv_file:
                 reader = csv.DictReader(csv_file, delimiter=";")
-                fieldnames = [
-                    field.strip()
-                    for field in reader.fieldnames or []
-                ]
+                fieldnames = [field.strip() for field in reader.fieldnames or []]
                 summary.schema_fields = sorted(fieldnames)
                 summary.required_missing = sorted(
                     self.REQUIRED_AAER_COLUMNS.difference(fieldnames)
@@ -542,9 +535,7 @@ class RawDataValidator:
                     self._label_ciks.intersection(self._aaer_ciks)
                 ),
                 "firm_label_identifier_overlap": len(
-                    self._firm_identifiers.intersection(
-                        self._label_identifiers
-                    )
+                    self._firm_identifiers.intersection(self._label_identifiers)
                 ),
             },
         }
@@ -732,5 +723,3 @@ def validate_raw_data() -> ValidationResult:
 
 if __name__ == "__main__":
     validate_raw_data()
-
-

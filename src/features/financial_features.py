@@ -1,2 +1,1 @@
-﻿"""Module: financial_features."""
-
+"""Module: financial_features."""

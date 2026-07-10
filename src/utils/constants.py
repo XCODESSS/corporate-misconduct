@@ -1,2 +1,1 @@
-﻿"""Module: constants."""
-
+"""Module: constants."""

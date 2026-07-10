@@ -1,4 +1,4 @@
-﻿"""
+"""
 Loughran-McDonald feature engineering.
 
 Responsibilities
@@ -35,52 +35,32 @@ import json
 from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class LMFeatureEngineer:
+    TRAINVAL_FILE = settings.DATASETS_DIR / "trainval_dataset.parquet"
 
-    TRAINVAL_FILE = (
-        settings.DATASETS_DIR
-        / "trainval_dataset.parquet"
-    )
-
-    TEST_FILE = (
-        settings.DATASETS_DIR
-        / "test_dataset.parquet"
-    )
+    TEST_FILE = settings.DATASETS_DIR / "test_dataset.parquet"
 
     LM_SUMMARY_FILE = (
-        settings.RAW_DIR
-        / "lm"
-        / "Loughran-McDonald_10X_Summaries_1993-2025.csv"
+        settings.RAW_DIR / "lm" / "Loughran-McDonald_10X_Summaries_1993-2025.csv"
     )
 
     OUTPUT_DIR = settings.FEATURES_DIR
 
-    TRAINVAL_OUTPUT = (
-        OUTPUT_DIR
-        / "trainval_features.parquet"
-    )
+    TRAINVAL_OUTPUT = OUTPUT_DIR / "trainval_features.parquet"
 
-    TEST_OUTPUT = (
-        OUTPUT_DIR
-        / "test_features.parquet"
-    )
+    TEST_OUTPUT = OUTPUT_DIR / "test_features.parquet"
 
-    REPORT_FILE = (
-        settings.INTERIM_VALIDATED_DIR
-        / "lm_feature_report.json"
-    )
+    REPORT_FILE = settings.INTERIM_VALIDATED_DIR / "lm_feature_report.json"
 
     CHUNK_SIZE = 100_000
 
@@ -109,7 +89,6 @@ class LMFeatureEngineer:
     )
 
     def __init__(self) -> None:
-
         self.train_records = 0
         self.test_records = 0
 
@@ -128,7 +107,6 @@ class LMFeatureEngineer:
         path: Path,
         name: str,
     ) -> pd.DataFrame:
-
         logger.info(
             "Reading %s...",
             name,
@@ -154,19 +132,12 @@ class LMFeatureEngineer:
     def normalize_cik(
         series: pd.Series,
     ) -> pd.Series:
-
-        return (
-            series
-            .astype(str)
-            .str.extract(r"(\d+)", expand=False)
-            .str.zfill(10)
-        )
+        return series.astype(str).str.extract(r"(\d+)", expand=False).str.zfill(10)
 
     @staticmethod
     def extract_year(
         series: pd.Series,
     ) -> pd.Series:
-
         return pd.to_datetime(
             series,
             errors="coerce",
@@ -176,26 +147,17 @@ class LMFeatureEngineer:
         self,
         df: pd.DataFrame,
     ) -> pd.DataFrame:
+        df["cik"] = self.normalize_cik(df["cik"])
 
-        df["cik"] = self.normalize_cik(
-            df["cik"]
-        )
-
-        df["filing_year"] = self.extract_year(
-            df["reporting_date"]
-        )
+        df["filing_year"] = self.extract_year(df["reporting_date"])
 
         if missing := df["filing_year"].isna().sum():
-            raise ValueError(
-                f"{missing} rows have invalid reporting_date."
-            )
+            raise ValueError(f"{missing} rows have invalid reporting_date.")
 
-        df["filing_year"] = (
-            df["filing_year"]
-            .astype(np.int32)
-        )
+        df["filing_year"] = df["filing_year"].astype(np.int32)
 
         return df
+
     # ============================================================
     # Required Lookup Keys
     # ============================================================
@@ -235,7 +197,7 @@ class LMFeatureEngineer:
         )
 
         return keys
-    
+
     # ============================================================
     # Build LM Lookup (Streaming)
     # ============================================================
@@ -262,19 +224,19 @@ class LMFeatureEngineer:
         total_rows = 0
         matched_rows = 0
         duplicate_keys = 0
-        for chunk_number, chunk in enumerate(pd.read_csv(
-            self.LM_SUMMARY_FILE,
-            usecols=self.LM_COLUMNS,
-            dtype={"CIK": str},
-            chunksize=self.CHUNK_SIZE,
-            low_memory=False,
-        ), start=1):
-
+        for chunk_number, chunk in enumerate(
+            pd.read_csv(
+                self.LM_SUMMARY_FILE,
+                usecols=self.LM_COLUMNS,
+                dtype={"CIK": str},
+                chunksize=self.CHUNK_SIZE,
+                low_memory=False,
+            ),
+            start=1,
+        ):
             total_rows += len(chunk)
 
-            chunk["cik"] = self.normalize_cik(
-                chunk["CIK"]
-            )
+            chunk["cik"] = self.normalize_cik(chunk["CIK"])
 
             chunk["filing_year"] = pd.to_datetime(
                 chunk["FILING_DATE"].astype(str),
@@ -282,17 +244,11 @@ class LMFeatureEngineer:
                 errors="coerce",
             ).dt.year
 
-            chunk = chunk.dropna(
-                subset=["filing_year"]
-            )
+            chunk = chunk.dropna(subset=["filing_year"])
 
-            chunk["filing_year"] = (
-                chunk["filing_year"]
-                .astype(int)
-            )
+            chunk["filing_year"] = chunk["filing_year"].astype(int)
 
             for row in chunk.itertuples(index=False):
-
                 key = (
                     row.cik,
                     row.filing_year,
@@ -320,11 +276,7 @@ class LMFeatureEngineer:
                 matched_rows += 1
 
             logger.info(
-                (
-                    "Chunk %d | "
-                    "Rows=%d | "
-                    "Lookup=%d"
-                ),
+                ("Chunk %d | Rows=%d | Lookup=%d"),
                 chunk_number,
                 total_rows,
                 len(lookup),
@@ -335,9 +287,7 @@ class LMFeatureEngineer:
                 gc.collect()
 
         logger.info("=" * 70)
-        logger.info(
-            "LM lookup complete."
-        )
+        logger.info("LM lookup complete.")
         logger.info(
             "LM rows scanned: %d",
             total_rows,
@@ -390,7 +340,6 @@ class LMFeatureEngineer:
         matched = 0
 
         for row in df.itertuples(index=False):
-
             key = (
                 row.cik,
                 row.filing_year,
@@ -428,10 +377,7 @@ class LMFeatureEngineer:
             axis=1,
         )
 
-        denominator = (
-            df["N_Words"]
-            .replace(0, np.nan)
-        )
+        denominator = df["N_Words"].replace(0, np.nan)
 
         density_mapping = {
             "N_Negative": "negative_density",
@@ -444,23 +390,17 @@ class LMFeatureEngineer:
         }
 
         for source_column, density_column in density_mapping.items():
-
-            df[density_column] = (
-                df[source_column]
-                / denominator
-            )
+            df[density_column] = df[source_column] / denominator
 
         total = len(df)
         unmatched = total - matched
 
         if dataset_name == "trainval":
-
             self.train_records = total
             self.train_matched = matched
             self.train_unmatched = unmatched
 
         else:
-
             self.test_records = total
             self.test_matched = matched
             self.test_unmatched = unmatched
@@ -474,6 +414,7 @@ class LMFeatureEngineer:
 
         return df
         # ============================================================
+
     # Saving
     # ============================================================
 
@@ -512,54 +453,31 @@ class LMFeatureEngineer:
     # ============================================================
 
     def report(self) -> dict[str, Any]:
-
         return {
-
-            "train_records":
-                self.train_records,
-
-            "train_matched":
-                self.train_matched,
-
-            "train_unmatched":
-                self.train_unmatched,
-
-            "train_match_rate":
-                round(
-                    self.train_matched
-                    / self.train_records,
-                    4,
-                ),
-
-            "test_records":
-                self.test_records,
-
-            "test_matched":
-                self.test_matched,
-
-            "test_unmatched":
-                self.test_unmatched,
-
-            "test_match_rate":
-                round(
-                    self.test_matched
-                    / self.test_records,
-                    4,
-                ),
+            "train_records": self.train_records,
+            "train_matched": self.train_matched,
+            "train_unmatched": self.train_unmatched,
+            "train_match_rate": round(
+                self.train_matched / self.train_records,
+                4,
+            ),
+            "test_records": self.test_records,
+            "test_matched": self.test_matched,
+            "test_unmatched": self.test_unmatched,
+            "test_match_rate": round(
+                self.test_matched / self.test_records,
+                4,
+            ),
         }
 
     def write_report(self) -> None:
-
-        logger.info(
-            "Writing feature report..."
-        )
+        logger.info("Writing feature report...")
 
         with open(
             self.REPORT_FILE,
             "w",
             encoding="utf-8",
         ) as file:
-
             json.dump(
                 self.report(),
                 file,
@@ -568,15 +486,11 @@ class LMFeatureEngineer:
             )
 
     def log_summary(self) -> None:
-
         logger.info("=" * 70)
-        logger.info(
-            "LM Feature Engineering Summary"
-        )
+        logger.info("LM Feature Engineering Summary")
         logger.info("=" * 70)
 
         for key, value in self.report().items():
-
             logger.info(
                 "%s: %s",
                 key,
@@ -641,20 +555,15 @@ class LMFeatureEngineer:
         )
 
     def run(self) -> None:
-
         logger.info("=" * 70)
-        logger.info(
-            "Starting LM feature engineering..."
-        )
+        logger.info("Starting LM feature engineering...")
 
         self.OUTPUT_DIR.mkdir(
             parents=True,
             exist_ok=True,
         )
 
-        logger.info(
-            "Reading datasets to build required key set..."
-        )
+        logger.info("Reading datasets to build required key set...")
 
         train = self.prepare_dataset(
             self.load_dataset(
@@ -707,9 +616,7 @@ class LMFeatureEngineer:
 
         self.log_summary()
 
-        logger.info(
-            "LM feature engineering completed successfully."
-        )
+        logger.info("LM feature engineering completed successfully.")
 
         logger.info("=" * 70)
 
@@ -718,16 +625,14 @@ class LMFeatureEngineer:
 # Public API
 # ============================================================
 
-def engineer_lm_features() -> None:
 
+def engineer_lm_features() -> None:
     LMFeatureEngineer().run()
 
 
 def main() -> None:
-
     engineer_lm_features()
 
 
 if __name__ == "__main__":
-
     main()

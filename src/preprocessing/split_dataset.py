@@ -1,4 +1,4 @@
-﻿"""
+"""
 Dataset splitting.
 
 Responsibilities
@@ -33,15 +33,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 class DatasetSplitter:
     """
@@ -49,10 +48,7 @@ class DatasetSplitter:
     a train/validation pool and a held-out test set.
     """
 
-    INPUT_FILE = (
-    settings.INTERIM_CLEANED_DIR
-    / "deduplicated_firm_years.parquet"
-    )
+    INPUT_FILE = settings.INTERIM_CLEANED_DIR / "deduplicated_firm_years.parquet"
 
     OUTPUT_DIR = settings.DATASETS_DIR
 
@@ -60,28 +56,21 @@ class DatasetSplitter:
 
     TEST_FILE = OUTPUT_DIR / "test_dataset.parquet"
 
-    REPORT_FILE = (
-        settings.INTERIM_VALIDATED_DIR
-        / "split_report.json"
-    )
+    REPORT_FILE = settings.INTERIM_VALIDATED_DIR / "split_report.json"
 
     TEST_CUTOFF_YEAR = 2019
 
     def __init__(self) -> None:
-
-        self.total_records   = 0
+        self.total_records = 0
         self.trainval_records = 0
-        self.test_records    = 0
+        self.test_records = 0
 
     # ============================================================
     # Load
     # ============================================================
 
     def load_dataset(self) -> pa.Table:
-
-        logger.info(
-            "Reading quality-checked dataset..."
-        )
+        logger.info("Reading quality-checked dataset...")
 
         table = pq.read_table(self.INPUT_FILE)
 
@@ -122,13 +111,9 @@ class DatasetSplitter:
             errors="coerce",
         ).dt.year
 
-        trainval_df = df[
-            df["_year"] < self.TEST_CUTOFF_YEAR
-        ].drop(columns=["_year"])
+        trainval_df = df[df["_year"] < self.TEST_CUTOFF_YEAR].drop(columns=["_year"])
 
-        test_df = df[
-            df["_year"] >= self.TEST_CUTOFF_YEAR
-        ].drop(columns=["_year"])
+        test_df = df[df["_year"] >= self.TEST_CUTOFF_YEAR].drop(columns=["_year"])
 
         trainval_table = pa.Table.from_pandas(
             trainval_df,
@@ -141,7 +126,7 @@ class DatasetSplitter:
         )
 
         self.trainval_records = trainval_table.num_rows
-        self.test_records     = test_table.num_rows
+        self.test_records = test_table.num_rows
 
         logger.info(
             "Train/Val pool=%d | Test=%d",
@@ -160,7 +145,6 @@ class DatasetSplitter:
         table: pa.Table,
         output_file: Path,
     ) -> None:
-
         pq.write_table(
             table,
             output_file,
@@ -178,7 +162,6 @@ class DatasetSplitter:
         trainval_table: pa.Table,
         test_table: pa.Table,
     ) -> None:
-
         logger.info("Saving splits...")
 
         self.save_dataset(
@@ -202,16 +185,11 @@ class DatasetSplitter:
         trainval_table: pa.Table,
         test_table: pa.Table,
     ) -> None:
-
         logger.info("Validating splits...")
 
-        total = (
-            trainval_table.num_rows
-            + test_table.num_rows
-        )
+        total = trainval_table.num_rows + test_table.num_rows
 
         if total != self.total_records:
-
             raise ValueError(
                 f"Split validation failed. "
                 f"Expected {self.total_records} "
@@ -225,27 +203,21 @@ class DatasetSplitter:
     # ============================================================
 
     def report(self) -> dict[str, Any]:
-
         return {
-            "total_records":      self.total_records,
-            "trainval_records":   self.trainval_records,
-            "test_records":       self.test_records,
-            "test_cutoff_year":   self.TEST_CUTOFF_YEAR,
-            "split_method":       "temporal",
-            "walk_forward_note":  (
+            "total_records": self.total_records,
+            "trainval_records": self.trainval_records,
+            "test_records": self.test_records,
+            "test_cutoff_year": self.TEST_CUTOFF_YEAR,
+            "split_method": "temporal",
+            "walk_forward_note": (
                 "Walk-forward CV folds are generated dynamically "
                 "in src/evaluation/cross_validation.py over trainval_dataset.parquet"
             ),
-            "trainval_ratio": round(
-                self.trainval_records / self.total_records, 4
-            ),
-            "test_ratio": round(
-                self.test_records / self.total_records, 4
-            ),
+            "trainval_ratio": round(self.trainval_records / self.total_records, 4),
+            "test_ratio": round(self.test_records / self.total_records, 4),
         }
 
     def write_report(self) -> None:
-
         logger.info("Writing split report...")
 
         with open(
@@ -270,7 +242,6 @@ class DatasetSplitter:
     # ============================================================
 
     def log_summary(self) -> None:
-
         logger.info("=" * 70)
         logger.info("Dataset Split Summary")
         logger.info("=" * 70)
@@ -285,7 +256,6 @@ class DatasetSplitter:
     # ============================================================
 
     def run(self) -> None:
-
         logger.info("=" * 70)
         logger.info("Starting dataset split pipeline...")
 
@@ -308,6 +278,7 @@ class DatasetSplitter:
 # ============================================================
 # Public API
 # ============================================================
+
 
 def split_dataset() -> None:
     DatasetSplitter().run()

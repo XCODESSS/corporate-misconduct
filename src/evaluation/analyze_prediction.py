@@ -9,14 +9,10 @@ from pathlib import Path
 
 import pandas as pd
 
-
-PREDICTIONS_FILE = Path(
-    "reports/evaluation/logistic_regression_predictions.csv"
-)
+PREDICTIONS_FILE = Path("reports/evaluation/logistic_regression_predictions.csv")
 
 
 def main() -> None:
-
     df = pd.read_csv(PREDICTIONS_FILE)
 
     print("=" * 80)
@@ -30,9 +26,7 @@ def main() -> None:
     print("Probability Summary")
     print("=" * 80)
 
-    print(
-        df["predicted_probability"].describe()
-    )
+    print(df["predicted_probability"].describe())
 
     print()
 
@@ -96,15 +90,9 @@ def main() -> None:
     ]
 
     for threshold in thresholds:
+        positives = (df["predicted_probability"] >= threshold).sum()
 
-        positives = (
-            df["predicted_probability"] >= threshold
-        ).sum()
-
-        print(
-            f"Threshold={threshold:>5.2f} "
-            f"Predicted Positives={positives}"
-        )
+        print(f"Threshold={threshold:>5.2f} Predicted Positives={positives}")
 
     print()
 

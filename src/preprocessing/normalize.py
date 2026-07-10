@@ -1,4 +1,4 @@
-﻿"""
+"""
 Normalize cleaned MD&A text.
 
 Responsibilities
@@ -26,11 +26,9 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-import configs.settings as settings
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,18 +40,11 @@ class TextNormalizer:
     semantic information.
     """
 
-    INPUT_FILE = (
-        settings.INTERIM_CLEANED_DIR
-        / "cleaned_firm_years.parquet"
-    )
+    INPUT_FILE = settings.INTERIM_CLEANED_DIR / "cleaned_firm_years.parquet"
 
-    OUTPUT_FILE = (
-        settings.INTERIM_CLEANED_DIR
-        / "normalized_firm_years.parquet"
-    )
+    OUTPUT_FILE = settings.INTERIM_CLEANED_DIR / "normalized_firm_years.parquet"
 
     def __init__(self) -> None:
-
         self.rows_read = 0
         self.rows_written = 0
 
@@ -79,10 +70,7 @@ class TextNormalizer:
         """
 
         return (
-            text.replace("“", '"')
-            .replace("”", '"')
-            .replace("‘", "'")
-            .replace("’", "'")
+            text.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'")
         )
 
     @staticmethod
@@ -91,11 +79,7 @@ class TextNormalizer:
         Replace Unicode dash characters.
         """
 
-        return (
-            text.replace("–", "-")
-            .replace("—", "-")
-            .replace("−", "-")
-        )
+        return text.replace("–", "-").replace("—", "-").replace("−", "-")
 
     @staticmethod
     def normalize_ellipsis(text: str) -> str:
@@ -164,7 +148,6 @@ class TextNormalizer:
         ]
 
         for pattern, replacement in substitutions:
-
             text = re.sub(
                 pattern,
                 replacement,
@@ -209,6 +192,7 @@ class TextNormalizer:
 
         return text
         # ============================================================
+
     # Record Processing
     # ============================================================
 
@@ -223,9 +207,7 @@ class TextNormalizer:
 
         normalized = record.copy()
 
-        normalized["mda"] = self.normalize_text(
-            record.get("mda", "")
-        )
+        normalized["mda"] = self.normalize_text(record.get("mda", ""))
 
         return normalized
 
@@ -241,31 +223,20 @@ class TextNormalizer:
         Normalize one Arrow batch.
         """
 
-        records = (
-            pa.Table
-            .from_batches([batch])
-            .to_pylist()
-        )
+        records = pa.Table.from_batches([batch]).to_pylist()
 
         normalized_records = []
 
         for record in records:
-
             self.rows_read += 1
 
-            normalized = self.normalize_record(
-                record
-            )
+            normalized = self.normalize_record(record)
 
-            normalized_records.append(
-                normalized
-            )
+            normalized_records.append(normalized)
 
             self.rows_written += 1
 
-        return pa.Table.from_pylist(
-            normalized_records
-        )
+        return pa.Table.from_pylist(normalized_records)
 
     # ============================================================
     # Dataset Processing
@@ -276,45 +247,30 @@ class TextNormalizer:
         Normalize the cleaned dataset.
         """
 
-        logger.info(
-            "Reading cleaned dataset..."
-        )
+        logger.info("Reading cleaned dataset...")
 
-        parquet = pq.ParquetFile(
-            self.INPUT_FILE
-        )
+        parquet = pq.ParquetFile(self.INPUT_FILE)
 
         writer = None
 
         try:
-
             for batch in parquet.iter_batches():
-
-                table = self.process_batch(
-                    batch
-                )
+                table = self.process_batch(batch)
 
                 if writer is None:
-
                     writer = pq.ParquetWriter(
                         where=self.OUTPUT_FILE,
                         schema=table.schema,
                         compression="snappy",
                     )
 
-                writer.write_table(
-                    table
-                )
+                writer.write_table(table)
 
         finally:
-
             if writer is not None:
-
                 writer.close()
 
-        logger.info(
-            "Normalization complete."
-        )
+        logger.info("Normalization complete.")
 
         logger.info(
             "Rows read: %d",
@@ -330,6 +286,7 @@ class TextNormalizer:
 
         return self.OUTPUT_FILE
         # ============================================================
+
     # Output Validation
     # ============================================================
 
@@ -339,18 +296,13 @@ class TextNormalizer:
         normalized dataset.
         """
 
-        logger.info(
-            "Validating normalized dataset..."
-        )
+        logger.info("Validating normalized dataset...")
 
-        table = pq.read_table(
-            self.OUTPUT_FILE
-        )
+        table = pq.read_table(self.OUTPUT_FILE)
 
         actual_rows = table.num_rows
 
         if actual_rows != self.rows_written:
-
             raise ValueError(
                 "Row count mismatch. "
                 f"Expected {self.rows_written}, "
@@ -365,12 +317,8 @@ class TextNormalizer:
         ]
 
         for column in required_columns:
-
             if column not in table.column_names:
-
-                raise ValueError(
-                    f"Missing required column: {column}"
-                )
+                raise ValueError(f"Missing required column: {column}")
 
         null_mda = 0
         empty_mda = 0
@@ -383,9 +331,7 @@ class TextNormalizer:
                     empty_mda += 1
 
         if null_mda > 0:
-            raise ValueError(
-                f"Found {null_mda} null MDA records."
-            )
+            raise ValueError(f"Found {null_mda} null MDA records.")
 
         if empty_mda > 0:
             logger.warning(
@@ -393,9 +339,7 @@ class TextNormalizer:
                 empty_mda,
             )
 
-        logger.info(
-            "Validation successful."
-        )
+        logger.info("Validation successful.")
 
     # ============================================================
     # Statistics
@@ -418,19 +362,18 @@ class TextNormalizer:
 
         stats = self.summary()
 
-        logger.info(
-            "Normalization Summary"
-        )
+        logger.info("Normalization Summary")
 
         for key, value in stats.items():
-
             logger.info(
                 "%s: %s",
                 key,
                 value,
             )
-    
+
     # ============================================================
+
+
 # Public API
 # ============================================================
 
@@ -459,30 +402,21 @@ def main() -> None:
     CLI entry point.
     """
 
-    logger.info(
-        "=" * 70
-    )
+    logger.info("=" * 70)
 
-    logger.info(
-        "Starting normalization pipeline..."
-    )
+    logger.info("Starting normalization pipeline...")
 
     output = normalize_dataset()
 
-    logger.info(
-        "Normalized dataset written to:"
-    )
+    logger.info("Normalized dataset written to:")
 
     logger.info(
         "%s",
         output,
     )
 
-    logger.info(
-        "=" * 70
-    )
+    logger.info("=" * 70)
 
 
 if __name__ == "__main__":
-
     main()

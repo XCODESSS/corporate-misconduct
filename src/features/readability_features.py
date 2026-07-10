@@ -1,2 +1,1 @@
-﻿"""Module: readability_features."""
-
+"""Module: readability_features."""

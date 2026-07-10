@@ -1,2 +1,1 @@
-﻿"""Module: lexical_features."""
-
+"""Module: lexical_features."""

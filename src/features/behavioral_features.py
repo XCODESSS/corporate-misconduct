@@ -1,2 +1,1 @@
-﻿"""Module: behavioral_features."""
-
+"""Module: behavioral_features."""
