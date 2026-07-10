@@ -6,7 +6,9 @@ data/interim/
 data/processed/
 artifacts/
 
+# =========================
 # Large local files
+# =========================
 *.parquet
 *.csv
 *.json
@@ -18,6 +20,44 @@ artifacts/
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 
-src\evaluation\__pycache__
-src\features\__pycache__
-src\preprocessing\__pycache__
+# =========================
+# Python cache / build artifacts
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+.build/
+dist/
+site/
+.eggs/
+*.egg-info/
+
+# =========================
+# Notebook / editor artifacts
+# =========================
+.ipynb_checkpoints/
+.vscode/
+.idea/
+
+# =========================
+# Project-specific generated files
+# =========================
+src/**/__pycache__/
+src/evaluation/
+reports/
+*.db
+*.sqlite
+*.sqlite3
+*_best_params.json
+*_trials.csv
+*_optuna.db
+*.tmp
