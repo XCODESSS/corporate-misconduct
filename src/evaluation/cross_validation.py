@@ -1,4 +1,4 @@
-﻿"""
+"""
 Walk-forward cross-validation engine.
 
 Responsibilities
@@ -221,6 +221,7 @@ class WalkForwardCV:
 
         X_train, y_train = X[train_idx], y[train_idx]
         X_test, y_test = X[test_idx], y[test_idx]
+<<<<<<< HEAD
 
         if len(np.unique(y_train)) < 2:
             logger.warning(
@@ -275,6 +276,34 @@ class WalkForwardCV:
             )
         else:
             best_threshold = decision_threshold
+=======
+
+        if len(np.unique(y_train)) < 2:
+            logger.warning(
+                "Skipping year=%d because training fold has only one class.",
+                test_year,
+            )
+            return {}
+
+        model.fit(X_train, y_train)
+
+        if hasattr(model, "predict_proba"):
+            train_score = model.predict_proba(X_train)[:, 1]
+            test_score = model.predict_proba(X_test)[:, 1]
+        elif hasattr(model, "decision_function"):
+            train_score = model.decision_function(X_train)
+            test_score = model.decision_function(X_test)
+        else:
+            raise AttributeError(
+                "Estimator must implement predict_proba() or decision_function()."
+            )
+
+        best_threshold = self.find_best_threshold(
+            y_train,
+            train_score,
+            default_threshold=decision_threshold,
+        )
+>>>>>>> aaf34bff6668d91bf702bef9fb2fe88066ebc37c
 
         logger.info(
             "Year %d | Optimal Threshold = %.2f",
