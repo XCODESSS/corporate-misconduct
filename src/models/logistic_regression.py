@@ -96,9 +96,13 @@ class LogisticRegressionBaseline:
     def __init__(
         self,
         min_fraud_per_fold: int = 30,
+        calibrate: bool = True,
+        calibration_method: str = "sigmoid",
     ) -> None:
 
         self.min_fraud_per_fold = min_fraud_per_fold
+        self.calibrate = calibrate
+        self.calibration_method = calibration_method
 
         self.data: pd.DataFrame | None = None
 
@@ -358,6 +362,7 @@ class LogisticRegressionBaseline:
     def run_cross_validation(
         self,
         model: Pipeline,
+        calibrate: bool = False,
     ) -> dict[str, Any]:
         """
         Evaluate the Logistic Regression model
@@ -389,6 +394,8 @@ class LogisticRegressionBaseline:
             years=self.years,
             model_name=self.MODEL_NAME,
             decision_threshold=self.DECISION_THRESHOLD,
+            calibrate=calibrate,
+            calibration_method=self.calibration_method,
         )
         
 
@@ -666,7 +673,8 @@ class LogisticRegressionBaseline:
         # --------------------------------------------------------
 
         summary = self.run_cross_validation(
-            model
+            model,
+            calibrate=self.calibrate,
         )
 
         # --------------------------------------------------------
@@ -719,7 +727,7 @@ def main() -> None:
     """
 
     run_logistic_regression(
-        optimize=True,
+        optimize=False,
     )
 
 
