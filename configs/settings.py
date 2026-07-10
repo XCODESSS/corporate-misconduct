@@ -54,6 +54,16 @@ FEATURES_DIR = PROCESSED_DIR / "features"
 
 DATASETS_DIR = PROCESSED_DIR / "datasets"
 
+MODEL_FEATURE_COLUMNS = (
+    "negative_density",
+    "positive_density",
+    "uncertainty_density",
+    "litigious_density",
+    "weak_modal_density",
+    "strong_modal_density",
+    "constraining_density",
+)
+
 # =============================================================================
 # Reports
 # =============================================================================

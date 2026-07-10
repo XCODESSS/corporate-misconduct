@@ -19,17 +19,13 @@ This module DOES NOT
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
+import configs.settings as settings
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
-
 from sklearn.dummy import DummyClassifier
-
-import configs.settings as settings
-
 from src.evaluation.cross_validation import WalkForwardCV
 from src.utils.logger import get_logger
 
@@ -42,22 +38,11 @@ class DummyBaseline:
     using walk-forward cross-validation.
     """
 
-    INPUT_FILE = (
-        settings.FEATURES_DIR
-        / "trainval_features.parquet"
-    )
+    INPUT_FILE = settings.FEATURES_DIR / "trainval_features.parquet"
 
     MODEL_NAME = "dummy_classifier"
 
-    FEATURE_COLUMNS = [
-        "negative_density",
-        "positive_density",
-        "uncertainty_density",
-        "litigious_density",
-        "weak_modal_density",
-        "strong_modal_density",
-        "constraining_density",
-    ]
+    FEATURE_COLUMNS = list(settings.MODEL_FEATURE_COLUMNS)
 
     TARGET_COLUMN = "fraudulent"
 
@@ -73,7 +58,6 @@ class DummyBaseline:
         self,
         min_fraud_per_fold: int = 30,
     ) -> None:
-
         self.min_fraud_per_fold = min_fraud_per_fold
 
         self.data: pd.DataFrame | None = None
@@ -122,23 +106,15 @@ class DummyBaseline:
         Ensure all required columns are present.
         """
 
-        required_columns = (
-            self.FEATURE_COLUMNS
-            + [
-                self.TARGET_COLUMN,
-                self.YEAR_COLUMN,
-            ]
-        )
+        required_columns = self.FEATURE_COLUMNS + [
+            self.TARGET_COLUMN,
+            self.YEAR_COLUMN,
+        ]
 
         if missing := [col for col in required_columns if col not in df.columns]:
-            raise ValueError(
-                "Dataset missing required columns:\n"
-                + "\n".join(missing)
-            )
+            raise ValueError("Dataset missing required columns:\n" + "\n".join(missing))
 
-        logger.info(
-            "Dataset validation successful."
-        )
+        logger.info("Dataset validation successful.")
 
     # ============================================================
     # Feature Preparation
@@ -152,23 +128,13 @@ class DummyBaseline:
         Prepare X, y and filing years.
         """
 
-        logger.info(
-            "Preparing feature matrix..."
-        )
+        logger.info("Preparing feature matrix...")
 
-        feature_frame = df[
-            self.FEATURE_COLUMNS
-        ].copy()
+        feature_frame = df[self.FEATURE_COLUMNS].copy()
 
-        missing_before = (
-            feature_frame
-            .isna()
-            .sum()
-            .sum()
-        )
+        missing_before = feature_frame.isna().sum().sum()
 
         if missing_before > 0:
-
             logger.warning(
                 "Replacing %d missing feature values with 0.0",
                 missing_before,
@@ -176,21 +142,11 @@ class DummyBaseline:
 
         feature_frame = feature_frame.fillna(0.0)
 
-        self.X = feature_frame.to_numpy(
-            dtype=np.float64
-        )
+        self.X = feature_frame.to_numpy(dtype=np.float64)
 
-        self.y = (
-            df[self.TARGET_COLUMN]
-            .astype(int)
-            .to_numpy()
-        )
+        self.y = df[self.TARGET_COLUMN].astype(int).to_numpy()
 
-        self.years = (
-            df[self.YEAR_COLUMN]
-            .astype(np.int32)
-            .to_numpy()
-        )
+        self.years = df[self.YEAR_COLUMN].astype(np.int32).to_numpy()
 
         logger.info(
             "Fraud prevalence: %.2f%%",
@@ -207,7 +163,7 @@ class DummyBaseline:
             self.X.shape,
             self.y.shape,
         )
-    
+
     # ============================================================
     # Model
     # ============================================================
@@ -224,9 +180,7 @@ class DummyBaseline:
         probabilities reflect the observed fraud rate.
         """
 
-        logger.info(
-            "Building DummyClassifier..."
-        )
+        logger.info("Building DummyClassifier...")
 
         model = DummyClassifier(
             strategy="prior",
@@ -254,18 +208,10 @@ class DummyBaseline:
         """
 
         logger.info("=" * 70)
-        logger.info(
-            "Starting walk-forward cross-validation..."
-        )
+        logger.info("Starting walk-forward cross-validation...")
 
-        if (
-            self.X is None
-            or self.y is None
-            or self.years is None
-        ):
-            raise RuntimeError(
-                "Features have not been prepared."
-            )
+        if self.X is None or self.y is None or self.years is None:
+            raise RuntimeError("Features have not been prepared.")
 
         cv = WalkForwardCV(
             min_fraud_per_fold=self.min_fraud_per_fold,
@@ -282,9 +228,7 @@ class DummyBaseline:
 
         self.cv_summary = summary
 
-        logger.info(
-            "Cross-validation completed."
-        )
+        logger.info("Cross-validation completed.")
 
         return summary
 
@@ -300,10 +244,7 @@ class DummyBaseline:
         """
 
         if not self.cv_summary:
-
-            logger.warning(
-                "No CV summary available."
-            )
+            logger.warning("No CV summary available.")
             return
 
         self._extracted_from_run_15("Dummy Classifier Summary")
@@ -340,7 +281,6 @@ class DummyBaseline:
         ]
 
         for metric in metric_names:
-
             if values := self.cv_summary.get(
                 metric,
                 {},
@@ -354,6 +294,7 @@ class DummyBaseline:
 
         logger.info("=" * 70)
         # ============================================================
+
     # Pipeline
     # ============================================================
 
@@ -419,6 +360,7 @@ class DummyBaseline:
 # ============================================================
 # Public API
 # ============================================================
+
 
 def run_dummy_classifier() -> dict[str, Any]:
     """

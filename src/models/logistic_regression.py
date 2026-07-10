@@ -54,15 +54,7 @@ class LogisticRegressionBaseline:
 
     TRIALS_FILE = settings.REPORTS_DIR / "logistic_regression_trials.csv"
 
-    FEATURE_COLUMNS = [
-        "negative_density",
-        "positive_density",
-        "uncertainty_density",
-        "litigious_density",
-        "weak_modal_density",
-        "strong_modal_density",
-        "constraining_density",
-    ]
+    FEATURE_COLUMNS = list(settings.MODEL_FEATURE_COLUMNS)
 
     TARGET_COLUMN = "fraudulent"
 

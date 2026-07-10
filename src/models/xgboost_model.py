@@ -21,14 +21,18 @@ This module DOES NOT
 from __future__ import annotations
 
 import json
+import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 import configs.settings as settings
+import joblib
 import numpy as np
 import optuna
 import pandas as pd
 import pyarrow.parquet as pq
-import shap
+from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 from src.evaluation.cross_validation import WalkForwardCV
 from src.utils.logger import get_logger
@@ -82,15 +86,24 @@ class XGBoostBaseline:
 
     MODEL_METADATA_FILE = OUTPUT_DIR / "model_metadata.json"
 
-    FEATURE_COLUMNS = [
-        "negative_density",
-        "positive_density",
-        "uncertainty_density",
-        "litigious_density",
-        "weak_modal_density",
-        "strong_modal_density",
-        "constraining_density",
-    ]
+    FEATURE_COLUMNS = list(settings.MODEL_FEATURE_COLUMNS)
+
+    SUMMARY_METRICS = (
+        "roc_auc",
+        "pr_auc",
+        "precision",
+        "recall",
+        "f1",
+        "mcc",
+        "balanced_acc",
+        "brier_score",
+    )
+
+    TRIAL_LOGGER_NAMES = (
+        "src.models.xgboost_model",
+        "src.evaluation.cross_validation",
+        "src.evaluation.calibration",
+    )
 
     def __init__(
         self,
@@ -114,6 +127,8 @@ class XGBoostBaseline:
 
         self.best_params: dict[str, Any] = {}
 
+        self.best_trial_number: int | None = None
+
         self.best_model: Pipeline | None = None
 
         self.decision_threshold = (
@@ -131,8 +146,6 @@ class XGBoostBaseline:
         self.optuna_trials = (
             optuna_trials if optuna_trials is not None else self.DEFAULT_OPTUNA_TRIALS
         )
-
-        self._create_directories()
 
     def _create_directories(
         self,
@@ -216,9 +229,11 @@ class XGBoostBaseline:
         ]:
             raise ValueError(f"Missing required columns:\n{missing_columns}")
 
-        labels = dataset[self.TARGET_COLUMN].dropna().unique()
+        target_values = dataset[self.TARGET_COLUMN]
+        if target_values.isna().any():
+            raise ValueError("Target column cannot contain missing values.")
 
-        labels = sorted(labels.tolist())
+        labels = sorted(target_values.unique().tolist())
 
         if labels != [0, 1]:
             raise ValueError("Target column must contain only {0,1}.")
@@ -337,8 +352,24 @@ class XGBoostBaseline:
             "gamma": 0.0,
             "reg_alpha": 0.0,
             "reg_lambda": 1.0,
-            "scale_pos_weight": 1.0,
+            "scale_pos_weight": self._calculate_scale_pos_weight(),
+            "device": "cuda",
         }
+
+    def _calculate_scale_pos_weight(self) -> float:
+        """Balance positive and negative training examples for XGBoost."""
+
+        if self.y is None:
+            raise RuntimeError(
+                "Target vector must be prepared before building a model."
+            )
+
+        positive_count = int(self.y.sum())
+        if positive_count == 0:
+            raise ValueError("Target vector must contain at least one positive label.")
+
+        negative_count = len(self.y) - positive_count
+        return negative_count / positive_count
 
     def _validate_parameters(
         self,
@@ -378,47 +409,7 @@ class XGBoostBaseline:
 
         parameters = self._default_parameters()
 
-        self._validate_parameters(
-            parameters,
-        )
-
-        classifier = XGBClassifier(
-            **parameters,
-        )
-
-        model = Pipeline(
-            steps=[
-                (
-                    "classifier",
-                    classifier,
-                ),
-            ],
-        )
-
-        logger.info(
-            "=" * 70,
-        )
-
-        logger.info(
-            "Building baseline XGBoost model...",
-        )
-
-        logger.info(
-            "=" * 70,
-        )
-
-        logger.info(
-            "Model Parameters",
-        )
-
-        for key, value in parameters.items():
-            logger.info(
-                "%-20s : %s",
-                key,
-                value,
-            )
-
-        return model
+        return self._build_pipeline(parameters, "baseline")
 
     def build_tuned_model(
         self,
@@ -437,45 +428,23 @@ class XGBoostBaseline:
             self.best_params,
         )
 
-        self._validate_parameters(
-            parameters,
-        )
+        return self._build_pipeline(parameters, "tuned")
 
-        classifier = XGBClassifier(
-            **parameters,
-        )
+    def _build_pipeline(
+        self,
+        parameters: dict[str, Any],
+        model_kind: str,
+    ) -> Pipeline:
+        self._validate_parameters(parameters)
+        model = Pipeline(steps=[("classifier", XGBClassifier(**parameters))])
 
-        model = Pipeline(
-            steps=[
-                (
-                    "classifier",
-                    classifier,
-                ),
-            ],
-        )
+        logger.info("=" * 70)
+        logger.info("Building %s XGBoost model...", model_kind)
+        logger.info("=" * 70)
+        logger.info("Model Parameters")
 
-        logger.info(
-            "=" * 70,
-        )
-
-        logger.info(
-            "Building tuned XGBoost model...",
-        )
-
-        logger.info(
-            "=" * 70,
-        )
-
-        logger.info(
-            "Model Parameters",
-        )
-
-        for key, value in parameters.items():
-            logger.info(
-                "%-20s : %s",
-                key,
-                value,
-            )
+        for parameter_name, parameter_value in parameters.items():
+            logger.info("%-20s : %s", parameter_name, parameter_value)
 
         return model
 
@@ -560,9 +529,7 @@ class XGBoostBaseline:
 
         model = self.build_tuned_model()
 
-        summary = self.run_cross_validation(
-            model,
-        )
+        summary = self.run_cross_validation(model, persist_results=False)
 
         score = summary.get("pr_auc", {}).get("mean")
 
@@ -640,6 +607,26 @@ class XGBoostBaseline:
             index=False,
         )
 
+    @contextmanager
+    def _quiet_trial_logging(self) -> Iterator[None]:
+        """Keep the Optuna progress bar readable during repeated CV runs."""
+
+        logger_levels: list[tuple[logging.Logger, int]] = []
+        for logger_name in self.TRIAL_LOGGER_NAMES:
+            trial_logger = logging.getLogger(logger_name)
+            logger_levels.append((trial_logger, trial_logger.level))
+            trial_logger.setLevel(logging.WARNING)
+
+        optuna_verbosity = optuna.logging.get_verbosity()
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+        try:
+            yield
+        finally:
+            for trial_logger, previous_level in logger_levels:
+                trial_logger.setLevel(previous_level)
+            optuna.logging.set_verbosity(optuna_verbosity)
+
     def optimize(
         self,
     ) -> None:
@@ -647,9 +634,8 @@ class XGBoostBaseline:
         Run Optuna hyperparameter optimization.
         """
 
-        logger.info("=" * 70)
-        logger.info("Starting Optuna optimization...")
-        logger.info("=" * 70)
+        self._extracted_from_run_8("Starting Optuna optimization...")
+        self._create_directories()
 
         self.study = optuna.create_study(
             study_name=self.MODEL_NAME,
@@ -658,33 +644,31 @@ class XGBoostBaseline:
             load_if_exists=True,
         )
 
-        self.study.optimize(
-            self.objective,
-            n_trials=self.optuna_trials,
-            show_progress_bar=True,
+        logger.info(
+            "Optimizing %d trial(s); the progress bar shows completion and ETA.",
+            self.optuna_trials,
         )
+        with self._quiet_trial_logging():
+            self.study.optimize(
+                self.objective,
+                n_trials=self.optuna_trials,
+                show_progress_bar=True,
+            )
 
         self.best_params = dict(
             self.study.best_trial.params,
         )
+        self.best_trial_number = self.study.best_trial.number
 
         self._save_best_parameters()
 
         self._save_trials()
 
         logger.info(
-            "Best PR-AUC : %.6f",
+            "Optimization complete | best trial=%d | PR-AUC=%.6f",
+            self.best_trial_number,
             self.study.best_value,
         )
-
-        logger.info("Best Parameters")
-
-        for parameter, value in self.best_params.items():
-            logger.info(
-                "%-20s : %s",
-                parameter,
-                value,
-            )
 
     def run_cross_validation(
         self,
@@ -694,6 +678,7 @@ class XGBoostBaseline:
         calibration_cv: int | None = None,
         optimize_threshold: bool = True,
         fit_raw_reference: bool = False,
+        persist_results: bool = True,
     ) -> dict[str, Any]:
         """
         Evaluate the XGBoost model using
@@ -722,6 +707,10 @@ class XGBoostBaseline:
         fit_raw_reference
             Fit an additional raw model
             for calibration comparison.
+
+        persist_results
+            Save cross-validation reports. Disable this during
+            Optuna trials to avoid overwriting final run artifacts.
         """
 
         if self.X is None:
@@ -733,10 +722,7 @@ class XGBoostBaseline:
         if self.years is None:
             raise RuntimeError("Year vector has not been prepared.")
 
-        logger.info("=" * 70)
-        logger.info("Starting WalkForwardCV...")
-        logger.info("=" * 70)
-
+        self._extracted_from_run_8("Starting WalkForwardCV...")
         cv = WalkForwardCV(
             min_fraud_per_fold=self.min_fraud_per_fold,
         )
@@ -749,10 +735,19 @@ class XGBoostBaseline:
             model_name=self.MODEL_NAME,
             decision_threshold=self.decision_threshold,
             calibrate=calibrate,
-            calibration_method=(calibration_method or self.DEFAULT_CALIBRATION_METHOD),
-            calibration_cv=(calibration_cv or self.DEFAULT_CALIBRATION_FOLDS),
+            calibration_method=(
+                self.DEFAULT_CALIBRATION_METHOD
+                if calibration_method is None
+                else calibration_method
+            ),
+            calibration_cv=(
+                self.DEFAULT_CALIBRATION_FOLDS
+                if calibration_cv is None
+                else calibration_cv
+            ),
             optimize_threshold=optimize_threshold,
             fit_raw_reference=fit_raw_reference,
+            persist_results=persist_results,
         )
 
         self.cv_summary = summary
@@ -769,10 +764,7 @@ class XGBoostBaseline:
         XGBoost configuration.
         """
 
-        logger.info("=" * 70)
-        logger.info("Running baseline model...")
-        logger.info("=" * 70)
-
+        self._extracted_from_run_8("Running baseline model...")
         model = self.build_model()
 
         return self.run_cross_validation(
@@ -793,10 +785,7 @@ class XGBoostBaseline:
         if not self.best_params:
             raise RuntimeError("No tuned parameters available.")
 
-        logger.info("=" * 70)
-        logger.info("Running tuned model...")
-        logger.info("=" * 70)
-
+        self._extracted_from_run_8("Running tuned model...")
         model = self.build_tuned_model()
 
         return self.run_cross_validation(
@@ -909,6 +898,7 @@ class XGBoostBaseline:
             "decision_threshold": self.decision_threshold,
             "min_fraud_per_fold": self.min_fraud_per_fold,
             "optuna_trials": self.optuna_trials,
+            "best_trial_number": self.best_trial_number,
             "best_parameters": self.best_params,
         }
 
@@ -933,8 +923,6 @@ class XGBoostBaseline:
         Persist the trained model.
         """
 
-        import joblib
-
         model_path = self.OUTPUT_DIR / "xgboost_model.joblib"
 
         joblib.dump(
@@ -955,6 +943,7 @@ class XGBoostBaseline:
         Save all model artifacts.
         """
 
+        self._create_directories()
         self.save_feature_importance(
             model,
         )
@@ -1025,21 +1014,12 @@ class XGBoostBaseline:
         Compute SHAP values.
         """
 
-        classifier = self._get_trained_classifier(
-            model,
-        )
+        import shap
 
-        shap_features, _ = self._sample_shap_dataset(
-            sample_size,
-        )
-
-        explainer = shap.TreeExplainer(
-            classifier,
-        )
-
-        shap_values = explainer.shap_values(
-            shap_features,
-        )
+        classifier = self._get_trained_classifier(model)
+        shap_features, _ = self._sample_shap_dataset(sample_size)
+        explainer = shap.TreeExplainer(classifier)
+        shap_values = explainer.shap_values(shap_features)
 
         return (
             shap_features,
@@ -1048,23 +1028,17 @@ class XGBoostBaseline:
 
     def save_shap_importance(
         self,
-        model: Pipeline,
-        sample_size: int = 1000,
+        features: np.ndarray,
+        shap_values: np.ndarray,
     ) -> None:
         """
         Save global SHAP feature importance.
         """
 
-        logger.info("Computing SHAP importance...")
+        if features.shape[1] != len(self.FEATURE_COLUMNS):
+            raise ValueError("SHAP feature count does not match the configured schema.")
 
-        features, shap_values = self.compute_shap_values(
-            model=model,
-            sample_size=sample_size,
-        )
-
-        importance = np.abs(
-            shap_values,
-        ).mean(axis=0)
+        importance = np.abs(shap_values).mean(axis=0)
 
         shap_importance = (
             pd.DataFrame(
@@ -1098,17 +1072,14 @@ class XGBoostBaseline:
 
     def save_shap_summary_plot(
         self,
-        model: Pipeline,
-        sample_size: int = 1000,
+        features: np.ndarray,
+        shap_values: np.ndarray,
     ) -> None:
         """
         Save SHAP summary plot.
         """
 
-        features, shap_values = self.compute_shap_values(
-            model=model,
-            sample_size=sample_size,
-        )
+        import shap
 
         output_directory = self.OUTPUT_DIR / "shap"
 
@@ -1146,17 +1117,10 @@ class XGBoostBaseline:
         Execute complete SHAP analysis.
         """
 
-        logger.info("=" * 70)
-        logger.info("Running SHAP analysis...")
-        logger.info("=" * 70)
-
-        self.save_shap_importance(
-            model,
-        )
-
-        self.save_shap_summary_plot(
-            model,
-        )
+        self._extracted_from_run_8("Running SHAP analysis...")
+        features, shap_values = self.compute_shap_values(model)
+        self.save_shap_importance(features, shap_values)
+        self.save_shap_summary_plot(features, shap_values)
 
         logger.info("SHAP analysis completed.")
 
@@ -1170,9 +1134,9 @@ class XGBoostBaseline:
         if self.cv_summary is None:
             raise RuntimeError("Cross-validation summary is unavailable.")
 
-        logger.info("=" * 70)
-        logger.info("XGBoost Summary")
-        logger.info("=" * 70)
+        self._extracted_from_run_8("XGBoost Summary")
+        if self.best_trial_number is not None:
+            logger.info("Selected Optuna Trial : %d", self.best_trial_number)
 
         logger.info(
             "Folds Evaluated : %d",
@@ -1184,28 +1148,17 @@ class XGBoostBaseline:
             self.cv_summary["years_evaluated"],
         )
 
-        logger.info(
-            "Overall Fraud Rate : %.2f%%",
-            self.cv_summary["overall_fraud_rate"] * 100,
-        )
+        if self.y is None:
+            raise RuntimeError("Target vector has not been prepared.")
+
+        logger.info("Overall Fraud Rate : %.2f%%", self.y.mean() * 100)
 
         logger.info(
             "Total Fraud Cases : %d",
             self.cv_summary["total_test_fraud"],
         )
 
-        metric_names = (
-            "roc_auc",
-            "pr_auc",
-            "precision",
-            "recall",
-            "f1",
-            "mcc",
-            "balanced_acc",
-            "brier_score",
-        )
-
-        for metric_name in metric_names:
+        for metric_name in self.SUMMARY_METRICS:
             statistics = self.cv_summary[metric_name]
 
             logger.info(
@@ -1242,12 +1195,28 @@ class XGBoostBaseline:
         Evaluate a trained model.
         """
 
+        if self.best_trial_number is not None:
+            logger.info(
+                "Evaluating selected best Optuna model | trial=%d",
+                self.best_trial_number,
+            )
+
         return self.run_cross_validation(
             model=model,
             calibrate=calibrate,
             optimize_threshold=True,
             fit_raw_reference=False,
         )
+
+    def fit_full_dataset_model(self, model: Pipeline) -> Pipeline:
+        """Fit a fresh model on all development data for artifact generation."""
+
+        if self.X is None or self.y is None:
+            raise RuntimeError("Features and target must be prepared before fitting.")
+
+        fitted_model = clone(model)
+        fitted_model.fit(self.X, self.y)
+        return fitted_model
 
     def run(
         self,
@@ -1259,10 +1228,7 @@ class XGBoostBaseline:
         Execute the complete XGBoost pipeline.
         """
 
-        logger.info("=" * 70)
-        logger.info("Starting XGBoost pipeline...")
-        logger.info("=" * 70)
-
+        self._extracted_from_run_8("Starting XGBoost pipeline...")
         dataset = self.load_dataset()
 
         self.validate_dataset(
@@ -1273,24 +1239,25 @@ class XGBoostBaseline:
             dataset,
         )
 
-        model = self.train_model(
+        selected_model = self.train_model(
             optimize=optimize,
         )
 
         summary = self.evaluate_model(
-            model=model,
+            model=selected_model,
             calibrate=calibrate,
         )
 
-        self.best_model = model
+        fitted_model = self.fit_full_dataset_model(selected_model)
+        self.best_model = fitted_model
 
         self.save_artifacts(
-            model,
+            fitted_model,
         )
 
         if run_shap:
             self.run_shap_analysis(
-                model,
+                fitted_model,
             )
 
         self.log_summary()
@@ -1301,11 +1268,17 @@ class XGBoostBaseline:
 
         return summary
 
+    # TODO Rename this here and in `optimize`, `run_cross_validation`, `evaluate_baseline`, `evaluate_best_model`, `run_shap_analysis`, `log_summary` and `run`
+    def _extracted_from_run_8(self, arg0):
+        logger.info("=" * 70)
+        logger.info(arg0)
+        logger.info("=" * 70)
+
 
 def run_xgboost(
-    optimize: bool = False,
-    calibrate: bool = False,
-    run_shap: bool = True,
+    optimize: bool = True,
+    calibrate: bool = True,
+    run_shap: bool = False,
 ) -> dict[str, Any]:
     """
     Public API for running XGBoost.
@@ -1326,9 +1299,9 @@ def main() -> None:
     """
 
     run_xgboost(
-        optimize=False,
-        calibrate=False,
-        run_shap=True,
+        optimize=True,
+        calibrate=True,
+        run_shap=False,
     )
 
 

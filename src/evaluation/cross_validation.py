@@ -1,4 +1,4 @@
-﻿"""
+"""
 Walk-forward cross-validation engine.
 
 Responsibilities
