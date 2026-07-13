@@ -40,6 +40,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from src.features.text_surface_features import add_text_surface_features
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -391,6 +392,8 @@ class LMFeatureEngineer:
 
         for source_column, density_column in density_mapping.items():
             df[density_column] = df[source_column] / denominator
+
+        df = add_text_surface_features(df)
 
         total = len(df)
         unmatched = total - matched

@@ -54,7 +54,7 @@ FEATURES_DIR = PROCESSED_DIR / "features"
 
 DATASETS_DIR = PROCESSED_DIR / "datasets"
 
-MODEL_FEATURE_COLUMNS = (
+LM_DENSITY_FEATURE_COLUMNS = (
     "negative_density",
     "positive_density",
     "uncertainty_density",
@@ -63,6 +63,27 @@ MODEL_FEATURE_COLUMNS = (
     "strong_modal_density",
     "constraining_density",
 )
+
+TEXT_SURFACE_FEATURE_COLUMNS = (
+    "mda_char_count",
+    "mda_word_count",
+    "mda_sentence_count",
+    "mda_avg_sentence_words",
+    "mda_log_word_count",
+    "mda_flesch_reading_ease",
+    "mda_flesch_kincaid_grade",
+    "mda_gunning_fog",
+    "mda_complex_word_ratio",
+    "mda_digit_ratio",
+    "mda_punctuation_ratio",
+    "mda_uppercase_ratio",
+    "mda_avg_word_length",
+    "mda_long_sentence_ratio",
+    "mda_lexical_diversity",
+    "mda_text_available",
+)
+
+MODEL_FEATURE_COLUMNS = LM_DENSITY_FEATURE_COLUMNS + TEXT_SURFACE_FEATURE_COLUMNS
 
 # =============================================================================
 # Reports
