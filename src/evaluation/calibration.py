@@ -1,4 +1,4 @@
-"""
+﻿"""
 Module: calibration.
 
 Responsibilities
@@ -21,15 +21,20 @@ from __future__ import annotations
 from typing import Any, Literal
 
 import numpy as np
+from sklearn.base import clone
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+from sklearn.isotonic import IsotonicRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 CalibrationMethod = Literal["sigmoid", "isotonic"]
+CalibrationStrategy = Literal["cross_validation", "chronological_holdout"]
 DEFAULT_CALIBRATION_BINS = 10
 MINIMUM_CALIBRATION_SPLITS = 2
+DEFAULT_CALIBRATION_HOLDOUT_FRACTION = 0.20
 MINIMUM_PROBABILITY = 0.0
 MAXIMUM_PROBABILITY = 1.0
 
@@ -39,12 +44,9 @@ class ProbabilityCalibrator:
     Wraps an UNFITTED sklearn-compatible estimator with
     CalibratedClassifierCV to produce calibrated probability estimates.
 
-    Fit ONLY on training-fold data. CalibratedClassifierCV performs its
-    own internal cross-validation on the training fold to generate
-    out-of-fold predictions for fitting the calibration map, then
-    refits the base estimator on the full training fold. Test-fold
-    data is never seen during fit(), so this is safe to use inside
-    WalkForwardCV without introducing leakage.
+    Fit ONLY on training-fold data. It supports either random internal
+    cross-validation or a chronological holdout taken from the end of the
+    training fold. Test-fold data is never seen during fit().
 
     Parameters
     ----------
@@ -56,12 +58,18 @@ class ProbabilityCalibrator:
         Number of internal folds used to generate out-of-fold
         predictions for calibration. Reduced automatically if the
         training fold does not have enough positive samples.
+    strategy : "cross_validation" | "chronological_holdout"
+        "chronological_holdout" learns a calibration map from a later
+        training-fold period, then refits the base estimator on all training
+        data before scoring the outer validation period.
     """
 
     def __init__(
         self,
         method: CalibrationMethod = "sigmoid",
         cv: int = 5,
+        strategy: CalibrationStrategy = "cross_validation",
+        holdout_fraction: float = DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
     ) -> None:
         if method not in ("sigmoid", "isotonic"):
             raise ValueError(f"Unsupported calibration method: {method}")
@@ -69,17 +77,26 @@ class ProbabilityCalibrator:
             raise ValueError(
                 f"cv must be at least {MINIMUM_CALIBRATION_SPLITS}; received {cv}."
             )
+        if strategy not in ("cross_validation", "chronological_holdout"):
+            raise ValueError(f"Unsupported calibration strategy: {strategy}")
+        if not 0 < holdout_fraction < 1:
+            raise ValueError("holdout_fraction must lie in (0, 1).")
 
         self.method = method
         self.cv = cv
+        self.strategy = strategy
+        self.holdout_fraction = holdout_fraction
         self.calibrated_model: CalibratedClassifierCV | None = None
         self._fallback_model: Any = None
+        self._full_model: Any = None
+        self._probability_mapper: Any = None
 
     def fit(
         self,
         estimator: Any,
         X_train: np.ndarray,
         y_train: np.ndarray,
+        years: np.ndarray | None = None,
     ) -> "ProbabilityCalibrator":
         """
         Fit the calibrated classifier on training-fold data only.
@@ -89,6 +106,16 @@ class ProbabilityCalibrator:
         """
 
         _validate_binary_labels(y_train)
+        self._full_model = None
+        self._probability_mapper = None
+        if self.strategy == "chronological_holdout":
+            return self._fit_chronological_holdout(
+                estimator,
+                X_train,
+                y_train,
+                years,
+            )
+
         positive_count = int(y_train.sum())
         negative_count = len(y_train) - positive_count
         n_splits = min(self.cv, positive_count, negative_count)
@@ -106,7 +133,6 @@ class ProbabilityCalibrator:
             self._fallback_model = estimator
             self.calibrated_model = None
             return self
-
         if n_splits < self.cv:
             logger.warning(
                 "Reducing calibration folds from %d to %d "
@@ -123,8 +149,70 @@ class ProbabilityCalibrator:
         )
         self.calibrated_model.fit(X_train, y_train)
         self._fallback_model = None
-
         return self
+
+    def _fit_chronological_holdout(
+        self,
+        estimator: Any,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        years: np.ndarray | None,
+    ) -> "ProbabilityCalibrator":
+        if years is None:
+            raise ValueError("Chronological calibration requires training-fold years.")
+
+        fit_idx, calibration_idx = self._chronological_holdout_indices(years)
+        if not self._has_both_classes(y_train[fit_idx]) or not self._has_both_classes(
+            y_train[calibration_idx]
+        ):
+            logger.warning(
+                "Chronological calibration split has a single-class partition; "
+                "falling back to an uncalibrated estimator."
+            )
+            estimator.fit(X_train, y_train)
+            self._fallback_model = estimator
+            self.calibrated_model = None
+            self._full_model = None
+            return self
+
+        calibration_model = clone(estimator).fit(
+            X_train[fit_idx],
+            y_train[fit_idx],
+        )
+        calibration_scores = self._predict_probability_scores(
+            calibration_model,
+            X_train[calibration_idx],
+        )
+        self._probability_mapper = self._fit_probability_mapper(
+            calibration_scores,
+            y_train[calibration_idx],
+        )
+        self._full_model = clone(estimator).fit(X_train, y_train)
+        self.calibrated_model = None
+        self._fallback_model = None
+        return self
+
+    def _chronological_holdout_indices(
+        self,
+        years: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        years = np.asarray(years)
+        if years.ndim != 1 or len(years) < 2:
+            raise ValueError("Training-fold years must be a one-dimensional array.")
+
+        ordered_years = np.sort(years, kind="stable")
+        split_position = max(1, int(np.ceil(len(years) * (1 - self.holdout_fraction))))
+        split_position = min(split_position, len(years) - 1)
+        calibration_start_year = ordered_years[split_position]
+        fit_idx = np.flatnonzero(years < calibration_start_year)
+        calibration_idx = np.flatnonzero(years >= calibration_start_year)
+        if len(fit_idx) == 0 or len(calibration_idx) == 0:
+            raise ValueError("Chronological calibration split cannot be empty.")
+        return fit_idx, calibration_idx
+
+    @staticmethod
+    def _has_both_classes(labels: np.ndarray) -> bool:
+        return len(np.unique(labels)) == 2
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """Return calibrated probability of the positive class."""
@@ -135,7 +223,34 @@ class ProbabilityCalibrator:
         if self._fallback_model is not None:
             return self._fallback_model.predict_proba(X)[:, 1]
 
+        if self._full_model is not None and self._probability_mapper is not None:
+            scores = self._predict_probability_scores(self._full_model, X)
+            return self._map_probabilities(scores)
+
         raise RuntimeError("ProbabilityCalibrator.fit() was not called.")
+
+    @staticmethod
+    def _predict_probability_scores(model: Any, X: np.ndarray) -> np.ndarray:
+        return model.predict_proba(X)[:, 1]
+
+    def _fit_probability_mapper(
+        self,
+        scores: np.ndarray,
+        labels: np.ndarray,
+    ) -> Any:
+        if self.method == "sigmoid":
+            mapper = LogisticRegression(C=1e6, solver="lbfgs")
+            mapper.fit(scores.reshape(-1, 1), labels)
+            return mapper
+
+        mapper = IsotonicRegression(out_of_bounds="clip")
+        mapper.fit(scores, labels)
+        return mapper
+
+    def _map_probabilities(self, scores: np.ndarray) -> np.ndarray:
+        if self.method == "sigmoid":
+            return self._probability_mapper.predict_proba(scores.reshape(-1, 1))[:, 1]
+        return self._probability_mapper.predict(scores)
 
 
 def compute_ece(

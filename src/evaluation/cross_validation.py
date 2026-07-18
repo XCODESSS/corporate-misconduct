@@ -21,6 +21,7 @@ This module DOES NOT
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -46,17 +47,26 @@ logger = get_logger(__name__)
 DEFAULT_DECISION_THRESHOLD = 0.5
 DEFAULT_CALIBRATION_METHOD = "sigmoid"
 DEFAULT_CALIBRATION_CV = 5
+DEFAULT_CALIBRATION_STRATEGY = "cross_validation"
+DEFAULT_CALIBRATION_HOLDOUT_FRACTION = 0.20
 THRESHOLD_CANDIDATES = np.arange(0.01, 1.00, 0.01)
 METRIC_NAMES = (
     "roc_auc",
     "pr_auc",
     "f1",
+    "f1_macro",
     "precision",
     "recall",
+    "recall_at_5_percent",
+    "precision_at_5_percent",
     "mcc",
     "balanced_acc",
     "brier_score",
+    "naive_brier_score",
+    "brier_skill_score",
 )
+
+OPERATING_POINT_FRACTION = 0.05
 
 
 class WalkForwardCV:
@@ -184,6 +194,7 @@ class WalkForwardCV:
         estimator: Any,
         X: np.ndarray,
         y: np.ndarray,
+        years: np.ndarray,
         train_idx: np.ndarray,
         test_idx: np.ndarray,
         test_year: int,
@@ -191,6 +202,8 @@ class WalkForwardCV:
         calibrate: bool = False,
         calibration_method: str = DEFAULT_CALIBRATION_METHOD,
         calibration_cv: int = DEFAULT_CALIBRATION_CV,
+        calibration_strategy: str = DEFAULT_CALIBRATION_STRATEGY,
+        calibration_holdout_fraction: float = DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
         fit_raw_reference: bool = True,
         optimize_threshold: bool = True,
     ) -> dict[str, Any]:
@@ -239,11 +252,14 @@ class WalkForwardCV:
             estimator=estimator,
             X_train=X_train,
             y_train=y_train,
+            years_train=years[train_idx],
             X_test=X_test,
             y_test=y_test,
             calibrate=calibrate,
             calibration_method=calibration_method,
             calibration_cv=calibration_cv,
+            calibration_strategy=calibration_strategy,
+            calibration_holdout_fraction=calibration_holdout_fraction,
             fit_raw_reference=fit_raw_reference,
         )
 
@@ -293,11 +309,14 @@ class WalkForwardCV:
         estimator: Any,
         X_train: np.ndarray,
         y_train: np.ndarray,
+        years_train: np.ndarray,
         X_test: np.ndarray,
         y_test: np.ndarray,
         calibrate: bool,
         calibration_method: str,
         calibration_cv: int,
+        calibration_strategy: str,
+        calibration_holdout_fraction: float,
         fit_raw_reference: bool,
     ) -> tuple[np.ndarray, np.ndarray, float | None]:
         if not calibrate:
@@ -320,7 +339,9 @@ class WalkForwardCV:
         calibrator = ProbabilityCalibrator(
             method=calibration_method,
             cv=calibration_cv,
-        ).fit(clone(estimator), X_train, y_train)
+            strategy=calibration_strategy,
+            holdout_fraction=calibration_holdout_fraction,
+        ).fit(clone(estimator), X_train, y_train, years=years_train)
         return (
             calibrator.predict_proba(X_train),
             calibrator.predict_proba(X_test),
@@ -385,6 +406,13 @@ class WalkForwardCV:
             roc_auc = float(roc_auc_score(y_test, y_score))
             pr_auc = float(average_precision_score(y_test, y_score))
 
+        operating_point_metrics = self._calculate_operating_point_metrics(
+            y_test,
+            y_score,
+        )
+        brier_score = float(brier_score_loss(y_test, y_score))
+        naive_brier_score = self._calculate_naive_brier_score(y_test)
+
         return {
             "test_year": test_year,
             "train_n": train_size,
@@ -394,15 +422,63 @@ class WalkForwardCV:
             "roc_auc": roc_auc,
             "pr_auc": pr_auc,
             "f1": f1_score(y_test, y_pred, zero_division=0),
+            "f1_macro": f1_score(
+                y_test,
+                y_pred,
+                average="macro",
+                zero_division=0,
+            ),
             "precision": precision_score(y_test, y_pred, zero_division=0),
             "recall": recall_score(y_test, y_pred, zero_division=0),
             "mcc": matthews_corrcoef(y_test, y_pred),
             "balanced_acc": balanced_accuracy_score(y_test, y_pred),
-            "brier_score": brier_score_loss(y_test, y_score),
+            **operating_point_metrics,
+            "brier_score": brier_score,
+            "naive_brier_score": naive_brier_score,
+            "brier_skill_score": self._calculate_brier_skill_score(
+                brier_score,
+                naive_brier_score,
+            ),
             "calibrated": calibrate,
             "raw_brier_score": raw_brier,
             "ece": None,
             "mce": None,
+        }
+
+    @staticmethod
+    def _calculate_naive_brier_score(y_true: np.ndarray) -> float:
+        """Brier score from predicting the fold fraud rate for every row."""
+        fraud_rate = float(np.mean(y_true))
+        return float(np.mean((y_true - fraud_rate) ** 2))
+
+    @staticmethod
+    def _calculate_brier_skill_score(
+        brier_score: float,
+        naive_brier_score: float,
+    ) -> float:
+        """Return improvement over the fold-rate probability baseline."""
+        if naive_brier_score == 0:
+            return float("nan")
+        return float(1.0 - (brier_score / naive_brier_score))
+
+    @staticmethod
+    def _calculate_operating_point_metrics(
+        y_true: np.ndarray,
+        y_score: np.ndarray,
+    ) -> dict[str, float | int]:
+        """Score the highest-risk five percent of a validation fold."""
+        review_n = max(1, math.ceil(len(y_true) * OPERATING_POINT_FRACTION))
+        ranked_indices = np.argsort(-y_score, kind="mergesort")[:review_n]
+        reviewed_labels = y_true[ranked_indices]
+        true_positives = int(reviewed_labels.sum())
+        total_positives = int(y_true.sum())
+
+        return {
+            "review_n_at_5_percent": review_n,
+            "recall_at_5_percent": (
+                true_positives / total_positives if total_positives else float("nan")
+            ),
+            "precision_at_5_percent": true_positives / review_n,
         }
 
     def _record_predictions(
@@ -637,6 +713,8 @@ class WalkForwardCV:
         calibrate: bool = False,
         calibration_method: str = "sigmoid",
         calibration_cv: int = 5,
+        calibration_strategy: str = DEFAULT_CALIBRATION_STRATEGY,
+        calibration_holdout_fraction: float = DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
         fit_raw_reference: bool = True,
         optimize_threshold: bool = True,
         persist_results: bool = True,
@@ -696,6 +774,7 @@ class WalkForwardCV:
                 estimator=estimator,
                 X=X,
                 y=y,
+                years=years,
                 train_idx=train_idx,
                 test_idx=test_idx,
                 test_year=test_year,
@@ -703,6 +782,8 @@ class WalkForwardCV:
                 calibrate=calibrate,
                 calibration_method=calibration_method,
                 calibration_cv=calibration_cv,
+                calibration_strategy=calibration_strategy,
+                calibration_holdout_fraction=calibration_holdout_fraction,
                 fit_raw_reference=fit_raw_reference,
                 optimize_threshold=optimize_threshold,
             )

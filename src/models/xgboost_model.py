@@ -20,6 +20,7 @@ This module DOES NOT
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from collections.abc import Iterator
@@ -32,6 +33,7 @@ import numpy as np
 import optuna
 import pandas as pd
 import pyarrow.parquet as pq
+import shap
 from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 from src.evaluation.cross_validation import WalkForwardCV
@@ -52,7 +54,9 @@ class XGBoostBaseline:
     Evaluation logic is delegated to WalkForwardCV.
     """
 
-    MODEL_NAME = "xgboost"
+    EXPERIMENT_NAME = "xgboost_lm_text_surface_probability_v2"
+
+    MODEL_NAME = EXPERIMENT_NAME
 
     RANDOM_STATE = 52
 
@@ -70,23 +74,41 @@ class XGBoostBaseline:
 
     DEFAULT_CALIBRATION_FOLDS = 5
 
+    DEFAULT_CALIBRATION_STRATEGY = "chronological_holdout"
+
+    DEFAULT_CALIBRATION_HOLDOUT_FRACTION = 0.20
+
     INPUT_FILE = settings.FEATURES_DIR / "trainval_features.parquet"
 
-    OUTPUT_DIR = settings.REPORTS_DIR / "models" / MODEL_NAME
+    OUTPUT_DIR = settings.REPORTS_DIR / "models" / EXPERIMENT_NAME
+
+    CV_OUTPUT_DIR = OUTPUT_DIR / "cross_validation"
 
     OPTUNA_DIRECTORY = settings.REPORTS_DIR / "optuna"
 
-    OPTUNA_STORAGE = OPTUNA_DIRECTORY / "xgboost.db"
+    OPTUNA_STORAGE = OPTUNA_DIRECTORY / f"{EXPERIMENT_NAME}.db"
 
-    BEST_PARAMS_FILE = OPTUNA_DIRECTORY / "xgboost_best_params.json"
+    BEST_PARAMS_FILE = OPTUNA_DIRECTORY / f"{EXPERIMENT_NAME}_best_params.json"
 
-    TRIALS_FILE = OPTUNA_DIRECTORY / "xgboost_trials.csv"
+    TRIALS_FILE = OPTUNA_DIRECTORY / f"{EXPERIMENT_NAME}_trials.csv"
 
     FEATURE_IMPORTANCE_FILE = OUTPUT_DIR / "feature_importance.csv"
 
     MODEL_METADATA_FILE = OUTPUT_DIR / "model_metadata.json"
 
+    EXPERIMENT_MANIFEST_FILE = OUTPUT_DIR / "experiment_manifest.json"
+
     FEATURE_COLUMNS = list(settings.MODEL_FEATURE_COLUMNS)
+
+    OPTIMIZATION_METRIC = "pr_auc"
+
+    CANDIDATE_REVIEW_SIZE = 10
+
+    CANDIDATE_REVIEW_FILE = OUTPUT_DIR / "candidate_review_full_refit.json"
+
+    XGBOOST_DEVICE = "cuda"
+
+    PROBABILITY_SCALE_POS_WEIGHT = 1.0
 
     SUMMARY_METRICS = (
         "roc_auc",
@@ -94,9 +116,14 @@ class XGBoostBaseline:
         "precision",
         "recall",
         "f1",
+        "f1_macro",
         "mcc",
         "balanced_acc",
         "brier_score",
+        "naive_brier_score",
+        "brier_skill_score",
+        "recall_at_5_percent",
+        "precision_at_5_percent",
     )
 
     TRIAL_LOGGER_NAMES = (
@@ -159,10 +186,49 @@ class XGBoostBaseline:
             exist_ok=True,
         )
 
+        self.CV_OUTPUT_DIR.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
         self.OPTUNA_DIRECTORY.mkdir(
             parents=True,
             exist_ok=True,
         )
+
+    def _feature_schema_hash(self) -> str:
+        feature_schema = json.dumps(self.FEATURE_COLUMNS, separators=(",", ":"))
+        return hashlib.sha256(feature_schema.encode("utf-8")).hexdigest()
+
+    def save_experiment_manifest(self) -> None:
+        """Persist the fixed inputs and settings for this experiment."""
+        manifest = {
+            "experiment_name": self.EXPERIMENT_NAME,
+            "model_name": self.MODEL_NAME,
+            "input_file": str(self.INPUT_FILE),
+            "target_column": self.TARGET_COLUMN,
+            "year_column": self.YEAR_COLUMN,
+            "feature_columns": self.FEATURE_COLUMNS,
+            "feature_schema_sha256": self._feature_schema_hash(),
+            "optimization_metric": self.OPTIMIZATION_METRIC,
+            "min_fraud_per_fold": self.min_fraud_per_fold,
+            "calibration_method": self.DEFAULT_CALIBRATION_METHOD,
+            "calibration_folds": self.DEFAULT_CALIBRATION_FOLDS,
+            "calibration_strategy": self.DEFAULT_CALIBRATION_STRATEGY,
+            "calibration_holdout_fraction": self.DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
+            "chronological_calibration_refits_full_training_fold": True,
+            "scale_pos_weight": self.PROBABILITY_SCALE_POS_WEIGHT,
+            "xgboost_device": self.XGBOOST_DEVICE,
+        }
+
+        with open(
+            self.EXPERIMENT_MANIFEST_FILE,
+            "w",
+            encoding="utf-8",
+        ) as file:
+            json.dump(manifest, file, indent=4)
+
+        logger.info("Experiment manifest saved to %s", self.EXPERIMENT_MANIFEST_FILE)
 
     def load_dataset(
         self,
@@ -352,8 +418,8 @@ class XGBoostBaseline:
             "gamma": 0.0,
             "reg_alpha": 0.0,
             "reg_lambda": 1.0,
-            "scale_pos_weight": self._calculate_scale_pos_weight(),
-            "device": "cuda",
+            "scale_pos_weight": self.PROBABILITY_SCALE_POS_WEIGHT,
+            "device": self.XGBOOST_DEVICE,
         }
 
     def _calculate_scale_pos_weight(self) -> float:
@@ -430,6 +496,115 @@ class XGBoostBaseline:
 
         return self._build_pipeline(parameters, "tuned")
 
+    def _load_study(self) -> optuna.Study:
+        """Open the completed PR-AUC study without adding trials."""
+        self.study = optuna.load_study(
+            study_name=self.MODEL_NAME,
+            storage=f"sqlite:///{self.OPTUNA_STORAGE}",
+        )
+        return self.study
+
+    def _top_pr_auc_trials(self) -> list[optuna.trial.FrozenTrial]:
+        """Return completed, finite PR-AUC trials in preliminary rank order."""
+        study = self.study or self._load_study()
+        completed_trials = [
+            trial
+            for trial in study.trials
+            if trial.state == optuna.trial.TrialState.COMPLETE
+            and trial.value is not None
+            and np.isfinite(trial.value)
+        ]
+        return sorted(
+            completed_trials,
+            key=lambda trial: (-float(trial.value), trial.number),
+        )[: self.CANDIDATE_REVIEW_SIZE]
+
+    def review_top_candidates(self) -> dict[str, Any]:
+        """Select a production candidate without evaluating the held-out test set."""
+        if self.X is None or self.y is None or self.years is None:
+            raise RuntimeError("Features and target must be prepared before review.")
+
+        self._create_directories()
+        candidates: list[dict[str, Any]] = []
+        for trial in self._top_pr_auc_trials():
+            self.best_params = dict(trial.params)
+            self.best_trial_number = trial.number
+            summary = self.run_cross_validation(
+                model=self.build_tuned_model(),
+                calibrate=True,
+                optimize_threshold=True,
+                fit_raw_reference=False,
+                persist_results=True,
+                model_name=f"{self.MODEL_NAME}_trial_{trial.number}_full_refit",
+            )
+            brier_skill = summary["brier_skill_score"]["mean"]
+            candidates.append(
+                {
+                    "trial_number": trial.number,
+                    "preliminary_pr_auc": float(trial.value),
+                    "parameters": dict(trial.params),
+                    "metrics": summary,
+                    "eligible": bool(np.isfinite(brier_skill) and brier_skill > 0),
+                }
+            )
+
+        eligible = [candidate for candidate in candidates if candidate["eligible"]]
+        if not eligible:
+            return self._extracted_from_review_top_candidates_32(candidates)
+        selected = sorted(
+            eligible,
+            key=lambda candidate: (
+                -candidate["metrics"]["recall_at_5_percent"]["mean"],
+                -candidate["metrics"]["pr_auc"]["mean"],
+                candidate["trial_number"],
+            ),
+        )[0]
+        self.best_trial_number = selected["trial_number"]
+        self.best_params = dict(selected["parameters"])
+        review = {
+            "status": "selected",
+            "selection_rule": (
+                "positive mean Brier skill score; highest mean Recall@5%; "
+                "mean PR-AUC tie-breaker"
+            ),
+            "candidate_count": len(candidates),
+            "selected_trial_number": self.best_trial_number,
+            "candidates": candidates,
+        }
+        with open(self.CANDIDATE_REVIEW_FILE, "w", encoding="utf-8") as file:
+            json.dump(review, file, indent=4)
+
+        logger.info(
+            "Candidate review selected trial=%d | Recall@5%%=%.6f | PR-AUC=%.6f",
+            self.best_trial_number,
+            selected["metrics"]["recall_at_5_percent"]["mean"],
+            selected["metrics"]["pr_auc"]["mean"],
+        )
+        return review
+
+    # TODO Rename this here and in `review_top_candidates`
+    def _extracted_from_review_top_candidates_32(self, candidates):
+        self.best_trial_number = None
+        self.best_params = {}
+        review = {
+            "status": "no_eligible_candidate",
+            "selection_rule": (
+                "positive mean Brier skill score; highest mean Recall@5%; "
+                "mean PR-AUC tie-breaker"
+            ),
+            "candidate_count": len(candidates),
+            "selected_trial_number": None,
+            "candidates": candidates,
+        }
+        with open(self.CANDIDATE_REVIEW_FILE, "w", encoding="utf-8") as file:
+            json.dump(review, file, indent=4)
+        logger.warning(
+            "Candidate review rejected all %d trials: no positive mean Brier "
+            "skill score. No model or SHAP artifacts will be produced.",
+            len(candidates),
+        )
+        return review
+
     def _build_pipeline(
         self,
         parameters: dict[str, Any],
@@ -505,11 +680,6 @@ class XGBoostBaseline:
                 1e-8,
                 20.0,
                 log=True,
-            ),
-            "scale_pos_weight": trial.suggest_float(
-                "scale_pos_weight",
-                5.0,
-                50.0,
             ),
         }
 
@@ -676,9 +846,12 @@ class XGBoostBaseline:
         calibrate: bool = False,
         calibration_method: str | None = None,
         calibration_cv: int | None = None,
+        calibration_strategy: str | None = None,
+        calibration_holdout_fraction: float | None = None,
         optimize_threshold: bool = True,
         fit_raw_reference: bool = False,
         persist_results: bool = True,
+        model_name: str | None = None,
     ) -> dict[str, Any]:
         """
         Evaluate the XGBoost model using
@@ -725,6 +898,7 @@ class XGBoostBaseline:
         self._extracted_from_run_8("Starting WalkForwardCV...")
         cv = WalkForwardCV(
             min_fraud_per_fold=self.min_fraud_per_fold,
+            output_dir=self.CV_OUTPUT_DIR,
         )
 
         summary = cv.run(
@@ -732,7 +906,7 @@ class XGBoostBaseline:
             X=self.X,
             y=self.y,
             years=self.years,
-            model_name=self.MODEL_NAME,
+            model_name=model_name or self.MODEL_NAME,
             decision_threshold=self.decision_threshold,
             calibrate=calibrate,
             calibration_method=(
@@ -744,6 +918,16 @@ class XGBoostBaseline:
                 self.DEFAULT_CALIBRATION_FOLDS
                 if calibration_cv is None
                 else calibration_cv
+            ),
+            calibration_strategy=(
+                self.DEFAULT_CALIBRATION_STRATEGY
+                if calibration_strategy is None
+                else calibration_strategy
+            ),
+            calibration_holdout_fraction=(
+                self.DEFAULT_CALIBRATION_HOLDOUT_FRACTION
+                if calibration_holdout_fraction is None
+                else calibration_holdout_fraction
             ),
             optimize_threshold=optimize_threshold,
             fit_raw_reference=fit_raw_reference,
@@ -893,6 +1077,7 @@ class XGBoostBaseline:
         """
 
         metadata = {
+            "experiment_name": self.EXPERIMENT_NAME,
             "model": self.MODEL_NAME,
             "random_state": self.RANDOM_STATE,
             "decision_threshold": self.decision_threshold,
@@ -900,6 +1085,7 @@ class XGBoostBaseline:
             "optuna_trials": self.optuna_trials,
             "best_trial_number": self.best_trial_number,
             "best_parameters": self.best_params,
+            "feature_schema_sha256": self._feature_schema_hash(),
         }
 
         with open(
@@ -1014,7 +1200,6 @@ class XGBoostBaseline:
         Compute SHAP values.
         """
 
-        import shap
 
         classifier = self._get_trained_classifier(model)
         shap_features, _ = self._sample_shap_dataset(sample_size)
@@ -1078,8 +1263,6 @@ class XGBoostBaseline:
         """
         Save SHAP summary plot.
         """
-
-        import shap
 
         output_directory = self.OUTPUT_DIR / "shap"
 
@@ -1229,6 +1412,7 @@ class XGBoostBaseline:
         """
 
         self._extracted_from_run_8("Starting XGBoost pipeline...")
+        self._create_directories()
         dataset = self.load_dataset()
 
         self.validate_dataset(
@@ -1239,9 +1423,20 @@ class XGBoostBaseline:
             dataset,
         )
 
+        self.save_experiment_manifest()
+
         selected_model = self.train_model(
             optimize=optimize,
         )
+
+        if optimize:
+            review = self.review_top_candidates()
+            if review["selected_trial_number"] is None:
+                raise RuntimeError(
+                    "Candidate review found no eligible model; "
+                    "see candidate_review.json."
+                )
+            selected_model = self.build_tuned_model()
 
         summary = self.evaluate_model(
             model=selected_model,
@@ -1268,7 +1463,72 @@ class XGBoostBaseline:
 
         return summary
 
-    # TODO Rename this here and in `optimize`, `run_cross_validation`, `evaluate_baseline`, `evaluate_best_model`, `run_shap_analysis`, `log_summary` and `run`
+    def run_candidate_review(
+        self,
+        run_shap: bool = True,
+    ) -> dict[str, Any]:
+        """Review an existing completed study and create selected-model artifacts."""
+        self._extracted_from_run_8("Starting XGBoost candidate review...")
+        self._create_directories()
+        dataset = self.load_dataset()
+        self.validate_dataset(dataset)
+        self.prepare_features(dataset)
+        self.save_experiment_manifest()
+
+        review = self.review_top_candidates()
+        if review["selected_trial_number"] is None:
+            logger.warning(
+                "Candidate review ended without a winner; no model or SHAP artifacts "
+                "were produced."
+            )
+            return review
+        selected = next(
+            candidate
+            for candidate in review["candidates"]
+            if candidate["trial_number"] == self.best_trial_number
+        )
+        self.cv_summary = selected["metrics"]
+
+        fitted_model = self.fit_full_dataset_model(self.build_tuned_model())
+        self.best_model = fitted_model
+        self.save_artifacts(fitted_model)
+        if run_shap:
+            self.run_shap_analysis(fitted_model)
+        self.log_summary()
+        return self.cv_summary
+
+    def run_selected_candidate_shap(self) -> None:
+        """Fit and explain the persisted candidate-review winner only."""
+        if not self.CANDIDATE_REVIEW_FILE.exists():
+            raise FileNotFoundError(
+                "Candidate review is missing; run the development review first."
+            )
+
+        with open(self.CANDIDATE_REVIEW_FILE, encoding="utf-8") as file:
+            review = json.load(file)
+        if review.get("status") != "selected":
+            raise RuntimeError(
+                "Candidate review has no eligible winner; SHAP must not be run."
+            )
+
+        selected_trial = review["selected_trial_number"]
+        selected = next(
+            candidate
+            for candidate in review["candidates"]
+            if candidate["trial_number"] == selected_trial
+        )
+        self._create_directories()
+        dataset = self.load_dataset()
+        self.validate_dataset(dataset)
+        self.prepare_features(dataset)
+        self.best_trial_number = selected_trial
+        self.best_params = dict(selected["parameters"])
+        fitted_model = self.fit_full_dataset_model(self.build_tuned_model())
+        self.best_model = fitted_model
+        self.save_artifacts(fitted_model)
+        self.run_shap_analysis(fitted_model)
+
+    # TODO: Replace this helper with a clearly named logging method.
     def _extracted_from_run_8(self, arg0):
         logger.info("=" * 70)
         logger.info(arg0)
@@ -1291,6 +1551,18 @@ def run_xgboost(
         calibrate=calibrate,
         run_shap=run_shap,
     )
+
+
+def review_xgboost_candidates(
+    run_shap: bool = True,
+) -> dict[str, Any]:
+    """Review the completed Optuna study without adding trials or using test data."""
+    return XGBoostBaseline().run_candidate_review(run_shap=run_shap)
+
+
+def run_selected_xgboost_shap() -> None:
+    """Run SHAP for a persisted eligible v2 winner without retraining candidates."""
+    XGBoostBaseline().run_selected_candidate_shap()
 
 
 def main() -> None:
