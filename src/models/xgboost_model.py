@@ -9,6 +9,7 @@ Responsibilities
 - Support probability calibration.
 - Persist experiment artifacts.
 - Produce production-grade experiment logs.
+- Run the one-time sealed held-out test evaluation for the selected winner.
 
 This module DOES NOT
 
@@ -25,6 +26,7 @@ import json
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 import configs.settings as settings
@@ -36,6 +38,7 @@ import pyarrow.parquet as pq
 import shap
 from sklearn.base import clone
 from sklearn.pipeline import Pipeline
+from src.evaluation.calibration import ProbabilityCalibrator, evaluate_calibration
 from src.evaluation.cross_validation import WalkForwardCV
 from src.utils.logger import get_logger
 from xgboost import XGBClassifier
@@ -64,7 +67,15 @@ class XGBoostBaseline:
 
     YEAR_COLUMN = "filing_year"
 
+    FILING_DATE_COLUMN = "filing_date"
+
+    FINAL_TEST_START_YEAR = 2019
+
+    FINAL_TEST_END_YEAR = 2022
+
     DEFAULT_DECISION_THRESHOLD = 0.50
+
+    FINAL_TEST_DECISION_THRESHOLD = 0.50
 
     DEFAULT_MIN_FRAUD_PER_FOLD = 30
 
@@ -80,9 +91,13 @@ class XGBoostBaseline:
 
     INPUT_FILE = settings.FEATURES_DIR / "trainval_features.parquet"
 
+    TEST_INPUT_FILE = settings.FEATURES_DIR / "test_features.parquet"
+
     OUTPUT_DIR = settings.REPORTS_DIR / "models" / EXPERIMENT_NAME
 
     CV_OUTPUT_DIR = OUTPUT_DIR / "cross_validation"
+
+    FINAL_TEST_OUTPUT_DIR = OUTPUT_DIR / "final_test"
 
     OPTUNA_DIRECTORY = settings.REPORTS_DIR / "optuna"
 
@@ -181,20 +196,9 @@ class XGBoostBaseline:
         Create all required output directories.
         """
 
-        self.OUTPUT_DIR.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        self.CV_OUTPUT_DIR.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        self.OPTUNA_DIRECTORY.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+        self.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        self.CV_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        self.OPTUNA_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
     def _feature_schema_hash(self) -> str:
         feature_schema = json.dumps(self.FEATURE_COLUMNS, separators=(",", ":"))
@@ -221,20 +225,34 @@ class XGBoostBaseline:
             "xgboost_device": self.XGBOOST_DEVICE,
         }
 
-        with open(
-            self.EXPERIMENT_MANIFEST_FILE,
-            "w",
-            encoding="utf-8",
-        ) as file:
+        with open(self.EXPERIMENT_MANIFEST_FILE, "w", encoding="utf-8") as file:
             json.dump(manifest, file, indent=4)
 
         logger.info("Experiment manifest saved to %s", self.EXPERIMENT_MANIFEST_FILE)
+
+    def _load_parquet(self, path) -> pd.DataFrame:
+        """Shared parquet loader used for both dev and sealed test data."""
+
+        if not path.exists():
+            raise FileNotFoundError(f"Dataset not found: {path}")
+
+        try:
+            table = pq.read_table(path)
+        except Exception as exc:
+            raise RuntimeError(f"Unable to read parquet dataset: {path}") from exc
+
+        dataset = table.to_pandas()
+
+        if dataset.empty:
+            raise ValueError(f"Dataset contains zero rows: {path}")
+
+        return dataset
 
     def load_dataset(
         self,
     ) -> pd.DataFrame:
         """
-        Load the processed training dataset.
+        Load the processed development (train/validation) dataset.
 
         Returns
         -------
@@ -245,33 +263,29 @@ class XGBoostBaseline:
         logger.info("=" * 70)
         logger.info("Loading processed training dataset...")
 
-        if not self.INPUT_FILE.exists():
-            raise FileNotFoundError(f"Dataset not found: {self.INPUT_FILE}")
+        dataset = self._load_parquet(self.INPUT_FILE)
 
-        try:
-            table = pq.read_table(
-                self.INPUT_FILE,
-            )
+        logger.info("Rows Loaded    : %d", len(dataset))
+        logger.info("Columns Loaded : %d", len(dataset.columns))
 
-        except Exception as exc:
-            raise RuntimeError(
-                f"Unable to read parquet dataset: {self.INPUT_FILE}"
-            ) from exc
+        return dataset
 
-        dataset = table.to_pandas()
+    def load_test_dataset(
+        self,
+    ) -> pd.DataFrame:
+        """
+        Load the sealed 2019-2022 held-out test dataset.
 
-        if dataset.empty:
-            raise ValueError("Dataset contains zero rows.")
+        This dataset must only be touched by run_final_test_evaluation().
+        """
 
-        logger.info(
-            "Rows Loaded    : %d",
-            len(dataset),
-        )
+        logger.info("=" * 70)
+        logger.info("Loading sealed test dataset...")
 
-        logger.info(
-            "Columns Loaded : %d",
-            len(dataset.columns),
-        )
+        dataset = self._load_parquet(self.TEST_INPUT_FILE)
+
+        logger.info("Rows Loaded    : %d", len(dataset))
+        logger.info("Columns Loaded : %d", len(dataset.columns))
 
         return dataset
 
@@ -307,10 +321,7 @@ class XGBoostBaseline:
         duplicate_rows = dataset.duplicated().sum()
 
         if duplicate_rows > 0:
-            logger.warning(
-                "%d duplicate rows detected.",
-                duplicate_rows,
-            )
+            logger.warning("%d duplicate rows detected.", duplicate_rows)
 
         feature_frame = dataset[self.FEATURE_COLUMNS]
 
@@ -319,73 +330,51 @@ class XGBoostBaseline:
 
         logger.info("Dataset validation passed.")
 
-    def prepare_features(
+    def _extract_arrays(
         self,
         dataset: pd.DataFrame,
-    ) -> None:
-        """
-        Prepare feature matrix and target arrays.
-        """
-
-        logger.info("Preparing training arrays...")
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Shared feature/target/year extraction used for dev and test data."""
 
         feature_frame = dataset[self.FEATURE_COLUMNS].copy()
 
         missing_values = int(feature_frame.isna().sum().sum())
 
         if missing_values > 0:
-            logger.warning(
-                "Replacing %d missing values with 0.0",
-                missing_values,
-            )
+            logger.warning("Replacing %d missing values with 0.0", missing_values)
+            feature_frame = feature_frame.fillna(0.0)
 
-            feature_frame = feature_frame.fillna(
-                0.0,
-            )
+        X = feature_frame.to_numpy(dtype=np.float32, copy=True)
+        y = dataset[self.TARGET_COLUMN].astype(np.int8).to_numpy()
+        years = dataset[self.YEAR_COLUMN].astype(np.int32).to_numpy()
 
-        self.X = feature_frame.to_numpy(
-            dtype=np.float32,
-            copy=True,
-        )
-
-        self.y = dataset[self.TARGET_COLUMN].astype(np.int8).to_numpy()
-
-        self.years = dataset[self.YEAR_COLUMN].astype(np.int32).to_numpy()
-
-        if len(self.X) != len(self.y) or len(self.X) != len(self.years):
+        if len(X) != len(y) or len(X) != len(years):
             raise RuntimeError(
                 "Feature matrix, labels and years have different lengths."
             )
 
-        fraud_cases = int(self.y.sum())
+        return X, y, years
 
+    def prepare_features(
+        self,
+        dataset: pd.DataFrame,
+    ) -> None:
+        """
+        Prepare feature matrix and target arrays for the development set.
+        """
+
+        logger.info("Preparing training arrays...")
+
+        self.X, self.y, self.years = self._extract_arrays(dataset)
+
+        fraud_cases = int(self.y.sum())
         fraud_rate = fraud_cases / len(self.y)
 
-        logger.info(
-            "Feature Matrix : %s",
-            self.X.shape,
-        )
-
-        logger.info(
-            "Target Shape   : %s",
-            self.y.shape,
-        )
-
-        logger.info(
-            "Years Shape    : %s",
-            self.years.shape,
-        )
-
-        logger.info(
-            "Fraud Cases    : %d",
-            fraud_cases,
-        )
-
-        logger.info(
-            "Fraud Rate     : %.2f%%",
-            fraud_rate * 100,
-        )
-
+        logger.info("Feature Matrix : %s", self.X.shape)
+        logger.info("Target Shape   : %s", self.y.shape)
+        logger.info("Years Shape    : %s", self.years.shape)
+        logger.info("Fraud Cases    : %d", fraud_cases)
+        logger.info("Fraud Rate     : %.2f%%", fraud_rate * 100)
         logger.info(
             "Evaluation Period : %d - %d",
             int(self.years.min()),
@@ -400,6 +389,10 @@ class XGBoostBaseline:
 
         These parameters are intended to provide a strong,
         reproducible baseline before Optuna optimization.
+
+        The probability-calibrated v2 study deliberately uses the fixed
+        PROBABILITY_SCALE_POS_WEIGHT value. Candidate selection and the
+        sealed test must therefore use the same value.
         """
 
         return {
@@ -421,21 +414,6 @@ class XGBoostBaseline:
             "scale_pos_weight": self.PROBABILITY_SCALE_POS_WEIGHT,
             "device": self.XGBOOST_DEVICE,
         }
-
-    def _calculate_scale_pos_weight(self) -> float:
-        """Balance positive and negative training examples for XGBoost."""
-
-        if self.y is None:
-            raise RuntimeError(
-                "Target vector must be prepared before building a model."
-            )
-
-        positive_count = int(self.y.sum())
-        if positive_count == 0:
-            raise ValueError("Target vector must contain at least one positive label.")
-
-        negative_count = len(self.y) - positive_count
-        return negative_count / positive_count
 
     def _validate_parameters(
         self,
@@ -489,10 +467,7 @@ class XGBoostBaseline:
             raise RuntimeError("No tuned parameters available.")
 
         parameters = self._default_parameters()
-
-        parameters.update(
-            self.best_params,
-        )
+        parameters.update(self.best_params)
 
         return self._build_pipeline(parameters, "tuned")
 
@@ -550,7 +525,7 @@ class XGBoostBaseline:
 
         eligible = [candidate for candidate in candidates if candidate["eligible"]]
         if not eligible:
-            return self._extracted_from_review_top_candidates_32(candidates)
+            return self._save_rejected_review(candidates)
         selected = sorted(
             eligible,
             key=lambda candidate: (
@@ -582,8 +557,7 @@ class XGBoostBaseline:
         )
         return review
 
-    # TODO Rename this here and in `review_top_candidates`
-    def _extracted_from_review_top_candidates_32(self, candidates):
+    def _save_rejected_review(self, candidates):
         self.best_trial_number = None
         self.best_params = {}
         review = {
@@ -603,6 +577,31 @@ class XGBoostBaseline:
             "skill score. No model or SHAP artifacts will be produced.",
             len(candidates),
         )
+        return review
+
+    def _load_selected_candidate_review(self) -> dict[str, Any]:
+        """
+        Load candidate_review_full_refit.json and refuse to proceed unless a
+        winner was actually selected. Used only by the sealed test evaluation.
+        """
+
+        if not self.CANDIDATE_REVIEW_FILE.exists():
+            raise FileNotFoundError(
+                f"Candidate review not found: {self.CANDIDATE_REVIEW_FILE}. "
+                "Run the development candidate review before the sealed test "
+                "evaluation."
+            )
+
+        with open(self.CANDIDATE_REVIEW_FILE, encoding="utf-8") as file:
+            review = json.load(file)
+
+        if review.get("status") != "selected":
+            raise RuntimeError(
+                "Candidate review has no eligible winner "
+                f"(status={review.get('status')!r}); the sealed test set must "
+                "not be evaluated without a selected candidate."
+            )
+
         return review
 
     def _build_pipeline(
@@ -632,55 +631,17 @@ class XGBoostBaseline:
         """
 
         return {
-            "n_estimators": trial.suggest_int(
-                "n_estimators",
-                200,
-                1200,
-                step=50,
-            ),
+            "n_estimators": trial.suggest_int("n_estimators", 200, 1200, step=50),
             "learning_rate": trial.suggest_float(
-                "learning_rate",
-                0.005,
-                0.20,
-                log=True,
+                "learning_rate", 0.005, 0.20, log=True
             ),
-            "max_depth": trial.suggest_int(
-                "max_depth",
-                3,
-                8,
-            ),
-            "min_child_weight": trial.suggest_float(
-                "min_child_weight",
-                1.0,
-                20.0,
-            ),
-            "subsample": trial.suggest_float(
-                "subsample",
-                0.60,
-                1.00,
-            ),
-            "colsample_bytree": trial.suggest_float(
-                "colsample_bytree",
-                0.60,
-                1.00,
-            ),
-            "gamma": trial.suggest_float(
-                "gamma",
-                0.0,
-                10.0,
-            ),
-            "reg_alpha": trial.suggest_float(
-                "reg_alpha",
-                1e-8,
-                5.0,
-                log=True,
-            ),
-            "reg_lambda": trial.suggest_float(
-                "reg_lambda",
-                1e-8,
-                20.0,
-                log=True,
-            ),
+            "max_depth": trial.suggest_int("max_depth", 3, 8),
+            "min_child_weight": trial.suggest_float("min_child_weight", 1.0, 20.0),
+            "subsample": trial.suggest_float("subsample", 0.60, 1.00),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.60, 1.00),
+            "gamma": trial.suggest_float("gamma", 0.0, 10.0),
+            "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 5.0, log=True),
+            "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 20.0, log=True),
         }
 
     def objective(
@@ -693,9 +654,7 @@ class XGBoostBaseline:
         Optimize mean PR-AUC from WalkForwardCV.
         """
 
-        self.best_params = self._sample_parameters(
-            trial,
-        )
+        self.best_params = self._sample_parameters(trial)
 
         model = self.build_tuned_model()
 
@@ -709,25 +668,10 @@ class XGBoostBaseline:
         if not np.isfinite(score):
             raise optuna.TrialPruned("Non-finite PR-AUC.")
 
-        trial.set_user_attr(
-            "roc_auc",
-            summary["roc_auc"]["mean"],
-        )
-
-        trial.set_user_attr(
-            "f1",
-            summary["f1"]["mean"],
-        )
-
-        trial.set_user_attr(
-            "mcc",
-            summary["mcc"]["mean"],
-        )
-
-        trial.set_user_attr(
-            "balanced_acc",
-            summary["balanced_acc"]["mean"],
-        )
+        trial.set_user_attr("roc_auc", summary["roc_auc"]["mean"])
+        trial.set_user_attr("f1", summary["f1"]["mean"])
+        trial.set_user_attr("mcc", summary["mcc"]["mean"])
+        trial.set_user_attr("balanced_acc", summary["balanced_acc"]["mean"])
 
         return float(score)
 
@@ -738,16 +682,8 @@ class XGBoostBaseline:
         Persist the best Optuna parameters.
         """
 
-        with open(
-            self.BEST_PARAMS_FILE,
-            "w",
-            encoding="utf-8",
-        ) as file:
-            json.dump(
-                self.best_params,
-                file,
-                indent=4,
-            )
+        with open(self.BEST_PARAMS_FILE, "w", encoding="utf-8") as file:
+            json.dump(self.best_params, file, indent=4)
 
     def _save_trials(
         self,
@@ -760,22 +696,10 @@ class XGBoostBaseline:
             return
 
         trials = self.study.trials_dataframe(
-            attrs=(
-                "number",
-                "value",
-                "params",
-                "user_attrs",
-                "state",
-            ),
-        ).sort_values(
-            "value",
-            ascending=False,
-        )
+            attrs=("number", "value", "params", "user_attrs", "state"),
+        ).sort_values("value", ascending=False)
 
-        trials.to_csv(
-            self.TRIALS_FILE,
-            index=False,
-        )
+        trials.to_csv(self.TRIALS_FILE, index=False)
 
     @contextmanager
     def _quiet_trial_logging(self) -> Iterator[None]:
@@ -804,7 +728,7 @@ class XGBoostBaseline:
         Run Optuna hyperparameter optimization.
         """
 
-        self._extracted_from_run_8("Starting Optuna optimization...")
+        self._log_section_header("Starting Optuna optimization...")
         self._create_directories()
 
         self.study = optuna.create_study(
@@ -825,13 +749,10 @@ class XGBoostBaseline:
                 show_progress_bar=True,
             )
 
-        self.best_params = dict(
-            self.study.best_trial.params,
-        )
+        self.best_params = dict(self.study.best_trial.params)
         self.best_trial_number = self.study.best_trial.number
 
         self._save_best_parameters()
-
         self._save_trials()
 
         logger.info(
@@ -856,34 +777,6 @@ class XGBoostBaseline:
         """
         Evaluate the XGBoost model using
         expanding-window walk-forward validation.
-
-        Parameters
-        ----------
-        model
-            XGBoost pipeline.
-
-        calibrate
-            Enable probability calibration.
-
-        calibration_method
-            "sigmoid" or "isotonic".
-
-        calibration_cv
-            Internal folds used by
-            CalibratedClassifierCV.
-
-        optimize_threshold
-            Recompute the optimal
-            decision threshold on the
-            training fold.
-
-        fit_raw_reference
-            Fit an additional raw model
-            for calibration comparison.
-
-        persist_results
-            Save cross-validation reports. Disable this during
-            Optuna trials to avoid overwriting final run artifacts.
         """
 
         if self.X is None:
@@ -895,7 +788,7 @@ class XGBoostBaseline:
         if self.years is None:
             raise RuntimeError("Year vector has not been prepared.")
 
-        self._extracted_from_run_8("Starting WalkForwardCV...")
+        self._log_section_header("Starting WalkForwardCV...")
         cv = WalkForwardCV(
             min_fraud_per_fold=self.min_fraud_per_fold,
             output_dir=self.CV_OUTPUT_DIR,
@@ -948,7 +841,7 @@ class XGBoostBaseline:
         XGBoost configuration.
         """
 
-        self._extracted_from_run_8("Running baseline model...")
+        self._log_section_header("Running baseline model...")
         model = self.build_model()
 
         return self.run_cross_validation(
@@ -969,7 +862,7 @@ class XGBoostBaseline:
         if not self.best_params:
             raise RuntimeError("No tuned parameters available.")
 
-        self._extracted_from_run_8("Running tuned model...")
+        self._log_section_header("Running tuned model...")
         model = self.build_tuned_model()
 
         return self.run_cross_validation(
@@ -995,36 +888,18 @@ class XGBoostBaseline:
         """
 
         classifier: XGBClassifier = model.named_steps["classifier"]
-
         booster = classifier.get_booster()
-
-        raw_scores = booster.get_score(
-            importance_type=importance_type,
-        )
+        raw_scores = booster.get_score(importance_type=importance_type)
 
         feature_scores: list[dict[str, Any]] = []
 
-        for index, feature_name in enumerate(
-            self.FEATURE_COLUMNS,
-        ):
-            score = raw_scores.get(
-                f"f{index}",
-                0.0,
-            )
-
-            feature_scores.append(
-                {
-                    "feature": feature_name,
-                    "importance": float(score),
-                }
-            )
+        for index, feature_name in enumerate(self.FEATURE_COLUMNS):
+            score = raw_scores.get(f"f{index}", 0.0)
+            feature_scores.append({"feature": feature_name, "importance": float(score)})
 
         return (
             pd.DataFrame(feature_scores)
-            .sort_values(
-                "importance",
-                ascending=False,
-            )
+            .sort_values("importance", ascending=False)
             .reset_index(drop=True)
         )
 
@@ -1040,34 +915,16 @@ class XGBoostBaseline:
         logger.info("Saving feature importance...")
 
         output_directory = self.OUTPUT_DIR / "feature_importance"
+        output_directory.mkdir(parents=True, exist_ok=True)
 
-        output_directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        for importance_type in (
-            "gain",
-            "weight",
-            "cover",
-        ):
+        for importance_type in ("gain", "weight", "cover"):
             importance = self._extract_feature_importance(
                 model=model,
                 importance_type=importance_type,
             )
-
             output_file = output_directory / f"{importance_type}.csv"
-
-            importance.to_csv(
-                output_file,
-                index=False,
-            )
-
-            logger.info(
-                "%s importance saved to %s",
-                importance_type,
-                output_file,
-            )
+            importance.to_csv(output_file, index=False)
+            logger.info("%s importance saved to %s", importance_type, output_file)
 
     def save_model_metadata(
         self,
@@ -1088,16 +945,8 @@ class XGBoostBaseline:
             "feature_schema_sha256": self._feature_schema_hash(),
         }
 
-        with open(
-            self.MODEL_METADATA_FILE,
-            "w",
-            encoding="utf-8",
-        ) as file:
-            json.dump(
-                metadata,
-                file,
-                indent=4,
-            )
+        with open(self.MODEL_METADATA_FILE, "w", encoding="utf-8") as file:
+            json.dump(metadata, file, indent=4)
 
         logger.info("Metadata saved.")
 
@@ -1107,19 +956,17 @@ class XGBoostBaseline:
     ) -> None:
         """
         Persist the trained model.
+
+        NOTE: this saves the raw full-data model only. It does NOT
+        include a fitted calibration mapper. Do not load this file and
+        call predict_proba() expecting calibrated output — see
+        run_final_test_evaluation(), which reconstructs the calibrated
+        model from scratch instead of loading this artifact.
         """
 
         model_path = self.OUTPUT_DIR / "xgboost_model.joblib"
-
-        joblib.dump(
-            model,
-            model_path,
-        )
-
-        logger.info(
-            "Model saved to %s",
-            model_path,
-        )
+        joblib.dump(model, model_path)
+        logger.info("Model saved to %s", model_path)
 
     def save_artifacts(
         self,
@@ -1130,15 +977,9 @@ class XGBoostBaseline:
         """
 
         self._create_directories()
-        self.save_feature_importance(
-            model,
-        )
-
+        self.save_feature_importance(model)
         self.save_model_metadata()
-
-        self.save_model(
-            model,
-        )
+        self.save_model(model)
 
     def _get_trained_classifier(
         self,
@@ -1148,9 +989,7 @@ class XGBoostBaseline:
         Return the trained XGBoost classifier.
         """
 
-        classifier = model.named_steps.get(
-            "classifier",
-        )
+        classifier = model.named_steps.get("classifier")
 
         if classifier is None:
             raise RuntimeError("Pipeline does not contain an XGBClassifier.")
@@ -1176,20 +1015,10 @@ class XGBoostBaseline:
         if total_rows <= sample_size:
             return self.X, self.FEATURE_COLUMNS
 
-        rng = np.random.default_rng(
-            self.RANDOM_STATE,
-        )
+        rng = np.random.default_rng(self.RANDOM_STATE)
+        sample_indices = rng.choice(total_rows, size=sample_size, replace=False)
 
-        sample_indices = rng.choice(
-            total_rows,
-            size=sample_size,
-            replace=False,
-        )
-
-        return (
-            self.X[sample_indices],
-            self.FEATURE_COLUMNS,
-        )
+        return self.X[sample_indices], self.FEATURE_COLUMNS
 
     def compute_shap_values(
         self,
@@ -1200,16 +1029,12 @@ class XGBoostBaseline:
         Compute SHAP values.
         """
 
-
         classifier = self._get_trained_classifier(model)
         shap_features, _ = self._sample_shap_dataset(sample_size)
         explainer = shap.TreeExplainer(classifier)
         shap_values = explainer.shap_values(shap_features)
 
-        return (
-            shap_features,
-            np.asarray(shap_values),
-        )
+        return shap_features, np.asarray(shap_values)
 
     def save_shap_importance(
         self,
@@ -1226,32 +1051,15 @@ class XGBoostBaseline:
         importance = np.abs(shap_values).mean(axis=0)
 
         shap_importance = (
-            pd.DataFrame(
-                {
-                    "feature": self.FEATURE_COLUMNS,
-                    "mean_abs_shap": importance,
-                }
-            )
-            .sort_values(
-                "mean_abs_shap",
-                ascending=False,
-            )
-            .reset_index(
-                drop=True,
-            )
+            pd.DataFrame({"feature": self.FEATURE_COLUMNS, "mean_abs_shap": importance})
+            .sort_values("mean_abs_shap", ascending=False)
+            .reset_index(drop=True)
         )
 
         output_directory = self.OUTPUT_DIR / "shap"
+        output_directory.mkdir(parents=True, exist_ok=True)
 
-        output_directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        shap_importance.to_csv(
-            output_directory / "shap_importance.csv",
-            index=False,
-        )
+        shap_importance.to_csv(output_directory / "shap_importance.csv", index=False)
 
         logger.info("SHAP importance saved.")
 
@@ -1265,11 +1073,7 @@ class XGBoostBaseline:
         """
 
         output_directory = self.OUTPUT_DIR / "shap"
-
-        output_directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+        output_directory.mkdir(parents=True, exist_ok=True)
 
         shap.summary_plot(
             shap_values,
@@ -1281,13 +1085,11 @@ class XGBoostBaseline:
         import matplotlib.pyplot as plt
 
         plt.tight_layout()
-
         plt.savefig(
             output_directory / "summary_plot.png",
             dpi=300,
             bbox_inches="tight",
         )
-
         plt.close()
 
         logger.info("SHAP summary plot saved.")
@@ -1300,7 +1102,7 @@ class XGBoostBaseline:
         Execute complete SHAP analysis.
         """
 
-        self._extracted_from_run_8("Running SHAP analysis...")
+        self._log_section_header("Running SHAP analysis...")
         features, shap_values = self.compute_shap_values(model)
         self.save_shap_importance(features, shap_values)
         self.save_shap_summary_plot(features, shap_values)
@@ -1317,33 +1119,21 @@ class XGBoostBaseline:
         if self.cv_summary is None:
             raise RuntimeError("Cross-validation summary is unavailable.")
 
-        self._extracted_from_run_8("XGBoost Summary")
+        self._log_section_header("XGBoost Summary")
         if self.best_trial_number is not None:
             logger.info("Selected Optuna Trial : %d", self.best_trial_number)
 
-        logger.info(
-            "Folds Evaluated : %d",
-            self.cv_summary["n_folds"],
-        )
-
-        logger.info(
-            "Years Evaluated : %s",
-            self.cv_summary["years_evaluated"],
-        )
+        logger.info("Folds Evaluated : %d", self.cv_summary["n_folds"])
+        logger.info("Years Evaluated : %s", self.cv_summary["years_evaluated"])
 
         if self.y is None:
             raise RuntimeError("Target vector has not been prepared.")
 
         logger.info("Overall Fraud Rate : %.2f%%", self.y.mean() * 100)
-
-        logger.info(
-            "Total Fraud Cases : %d",
-            self.cv_summary["total_test_fraud"],
-        )
+        logger.info("Total Fraud Cases : %d", self.cv_summary["total_test_fraud"])
 
         for metric_name in self.SUMMARY_METRICS:
             statistics = self.cv_summary[metric_name]
-
             logger.info(
                 "%-15s mean=%8.4f std=%8.4f",
                 metric_name,
@@ -1411,23 +1201,8 @@ class XGBoostBaseline:
         Execute the complete XGBoost pipeline.
         """
 
-        self._extracted_from_run_8("Starting XGBoost pipeline...")
-        self._create_directories()
-        dataset = self.load_dataset()
-
-        self.validate_dataset(
-            dataset,
-        )
-
-        self.prepare_features(
-            dataset,
-        )
-
-        self.save_experiment_manifest()
-
-        selected_model = self.train_model(
-            optimize=optimize,
-        )
+        self._prepare_development_pipeline("Starting XGBoost pipeline...")
+        selected_model = self.train_model(optimize=optimize)
 
         if optimize:
             review = self.review_top_candidates()
@@ -1438,27 +1213,11 @@ class XGBoostBaseline:
                 )
             selected_model = self.build_tuned_model()
 
-        summary = self.evaluate_model(
-            model=selected_model,
-            calibrate=calibrate,
-        )
+        summary = self.evaluate_model(model=selected_model, calibrate=calibrate)
 
         fitted_model = self.fit_full_dataset_model(selected_model)
-        self.best_model = fitted_model
-
-        self.save_artifacts(
-            fitted_model,
-        )
-
-        if run_shap:
-            self.run_shap_analysis(
-                fitted_model,
-            )
-
-        self.log_summary()
-
+        self._finalize_artifacts(fitted_model, run_shap)
         logger.info("XGBoost completed successfully.")
-
         logger.info("=" * 70)
 
         return summary
@@ -1468,13 +1227,7 @@ class XGBoostBaseline:
         run_shap: bool = True,
     ) -> dict[str, Any]:
         """Review an existing completed study and create selected-model artifacts."""
-        self._extracted_from_run_8("Starting XGBoost candidate review...")
-        self._create_directories()
-        dataset = self.load_dataset()
-        self.validate_dataset(dataset)
-        self.prepare_features(dataset)
-        self.save_experiment_manifest()
-
+        self._prepare_development_pipeline("Starting XGBoost candidate review...")
         review = self.review_top_candidates()
         if review["selected_trial_number"] is None:
             logger.warning(
@@ -1490,12 +1243,24 @@ class XGBoostBaseline:
         self.cv_summary = selected["metrics"]
 
         fitted_model = self.fit_full_dataset_model(self.build_tuned_model())
+        self._finalize_artifacts(fitted_model, run_shap)
+        return self.cv_summary
+
+    def _finalize_artifacts(self, fitted_model: Pipeline, run_shap: bool) -> None:
         self.best_model = fitted_model
         self.save_artifacts(fitted_model)
         if run_shap:
             self.run_shap_analysis(fitted_model)
         self.log_summary()
-        return self.cv_summary
+
+    def _prepare_development_pipeline(self, header: str) -> pd.DataFrame:
+        self._log_section_header(header)
+        self._create_directories()
+        dataset = self.load_dataset()
+        self.validate_dataset(dataset)
+        self.prepare_features(dataset)
+        self.save_experiment_manifest()
+        return dataset
 
     def run_selected_candidate_shap(self) -> None:
         """Fit and explain the persisted candidate-review winner only."""
@@ -1528,10 +1293,256 @@ class XGBoostBaseline:
         self.save_artifacts(fitted_model)
         self.run_shap_analysis(fitted_model)
 
-    # TODO: Replace this helper with a clearly named logging method.
-    def _extracted_from_run_8(self, arg0):
+    # ============================================================
+    # Sealed Test Evaluation (one-time, 2019-2022)
+    # ============================================================
+
+    def _parse_filing_dates(
+        self,
+        dataset: pd.DataFrame,
+        dataset_name: str,
+    ) -> pd.Series:
+        """Parse the date used by the temporal split and validate it fully."""
+
+        if self.FILING_DATE_COLUMN not in dataset.columns:
+            raise ValueError(
+                f"{dataset_name} data is missing {self.FILING_DATE_COLUMN!r}."
+            )
+
+        filing_dates = pd.to_datetime(
+            dataset[self.FILING_DATE_COLUMN],
+            dayfirst=True,
+            errors="coerce",
+        )
+        if filing_dates.isna().any():
+            missing_count = int(filing_dates.isna().sum())
+            raise ValueError(
+                f"{dataset_name} data contains {missing_count} invalid filing dates."
+            )
+        return filing_dates
+
+    def _select_final_test_period(
+        self,
+        test_dataset: pd.DataFrame,
+    ) -> tuple[pd.DataFrame, pd.Series]:
+        """Restrict the test feature file to the pre-registered 2019-2022 window."""
+
+        filing_dates = self._parse_filing_dates(test_dataset, "Test")
+        period_mask = filing_dates.dt.year.between(
+            self.FINAL_TEST_START_YEAR,
+            self.FINAL_TEST_END_YEAR,
+        )
+        if not period_mask.any():
+            raise ValueError(
+                "Test data has no rows in the required "
+                f"{self.FINAL_TEST_START_YEAR}-{self.FINAL_TEST_END_YEAR} period."
+            )
+
+        final_test_dataset = test_dataset.loc[period_mask].copy()
+        final_test_dates = filing_dates.loc[period_mask]
+        excluded_count = int((~period_mask).sum())
+        if excluded_count:
+            logger.info(
+                "Excluded %d test rows outside the fixed %d-%d filing-date window.",
+                excluded_count,
+                self.FINAL_TEST_START_YEAR,
+                self.FINAL_TEST_END_YEAR,
+            )
+        return final_test_dataset, final_test_dates
+
+    def _validate_final_test_dates(
+        self,
+        test_filing_dates: pd.Series,
+        dev_filing_dates: pd.Series,
+    ) -> None:
+        """Ensure the selected final-test window is strictly after development."""
+
+        min_test_year = int(test_filing_dates.dt.year.min())
+        max_test_year = int(test_filing_dates.dt.year.max())
+        if (
+            min_test_year != self.FINAL_TEST_START_YEAR
+            or max_test_year != self.FINAL_TEST_END_YEAR
+        ):
+            raise ValueError(
+                "Selected final-test period does not match the required "
+                f"{self.FINAL_TEST_START_YEAR}-{self.FINAL_TEST_END_YEAR} window."
+            )
+
+        if dev_filing_dates.max() >= test_filing_dates.min():
+            raise ValueError(
+                "Development and final-test filing dates overlap or are out of order."
+            )
+
+    def _final_test_artifact_paths(self) -> tuple[Path, Path, Path]:
+        """Return the three immutable artifacts of a sealed test evaluation."""
+
+        return (
+            self.FINAL_TEST_OUTPUT_DIR / "final_test_summary.json",
+            self.FINAL_TEST_OUTPUT_DIR / "final_test_predictions.csv",
+            self.FINAL_TEST_OUTPUT_DIR / "final_test_calibration.json",
+        )
+
+    def _ensure_final_test_has_not_run(self) -> None:
+        """Refuse to overwrite artifacts from an already-opened test set."""
+
+        existing_paths = [
+            path for path in self._final_test_artifact_paths() if path.exists()
+        ]
+        if existing_paths:
+            existing_names = ", ".join(path.name for path in existing_paths)
+            raise RuntimeError(
+                "Final-test artifacts already exist; sealed evaluation cannot be "
+                f"rerun. Existing artifacts: {existing_names}"
+            )
+
+    def run_final_test_evaluation(self) -> dict[str, Any]:
+        """
+        One-time sealed evaluation on the 2019-2022 held-out test set.
+
+        This is a ONE-SHOT evaluation. Do not call it more than once for
+        a given candidate selection — rerunning after inspecting the
+        result defeats the purpose of holding out a test set at all.
+
+        Procedure
+        ---------
+        1. Load candidate_review_full_refit.json; refuse to run unless
+           status == "selected".
+        2. Load the selected trial's hyperparameters from that file.
+        3. Load development data (trainval_features.parquet) and the
+           sealed test data (test_features.parquet).
+        4. Restrict test rows to the pre-registered 2019-2022 filing-date
+           window and verify that it follows the development period.
+        5. Reconstruct the calibrated model exactly as scored during
+           development: fit the raw estimator on the early chronological
+           portion of ALL development data, fit the probability mapper
+           on the late chronological holdout, refit the estimator on
+           all development data, then score test rows through that
+           frozen mapper. Does NOT load xgboost_model.joblib — that
+           artifact has no fitted calibration mapper attached.
+        6. Score at a fixed 0.50 threshold. No threshold tuning against
+           test data.
+        7. Compute the full metric set (ROC-AUC, PR-AUC, precision,
+           recall, F1, F1-macro, MCC, balanced accuracy, Brier, naive
+           Brier, Brier skill score, Recall@5%, Precision@5%, ECE, MCE,
+           reliability curve) by reusing WalkForwardCV's own metric
+           calculations rather than reimplementing them.
+        8. Save to reports/models/<experiment>/final_test/ only:
+           final_test_summary.json, final_test_predictions.csv,
+           final_test_calibration.json.
+
+        Returns
+        -------
+        dict
+            The full final_test_summary.json payload.
+        """
+
+        review = self._load_selected_candidate_review()
+        selected = next(
+            candidate
+            for candidate in review["candidates"]
+            if candidate["trial_number"] == review["selected_trial_number"]
+        )
+        self.best_trial_number = review["selected_trial_number"]
+        self.best_params = dict(selected["parameters"])
+
+        self._create_directories()
+        self.FINAL_TEST_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        self._ensure_final_test_has_not_run()
+
+        dev_dataset = self.load_dataset()
+        self.validate_dataset(dev_dataset)
+        self.prepare_features(dev_dataset)
+        dev_filing_dates = self._parse_filing_dates(dev_dataset, "Development")
+
+        test_dataset = self.load_test_dataset()
+        self.validate_dataset(test_dataset)
+        test_dataset, test_filing_dates = self._select_final_test_period(test_dataset)
+        X_test, y_test, years_test = self._extract_arrays(test_dataset)
+        self._validate_final_test_dates(test_filing_dates, dev_filing_dates)
+
         logger.info("=" * 70)
-        logger.info(arg0)
+        logger.info(
+            "SEALED TEST EVALUATION | trial=%d | dev_dates=%s-%s | test_dates=%s-%s",
+            self.best_trial_number,
+            dev_filing_dates.min().date(),
+            dev_filing_dates.max().date(),
+            test_filing_dates.min().date(),
+            test_filing_dates.max().date(),
+        )
+        logger.info("=" * 70)
+
+        unfitted_model = self.build_tuned_model()
+
+        calibrator = ProbabilityCalibrator(
+            method=self.DEFAULT_CALIBRATION_METHOD,
+            cv=self.DEFAULT_CALIBRATION_FOLDS,
+            strategy=self.DEFAULT_CALIBRATION_STRATEGY,
+            holdout_fraction=self.DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
+        ).fit(unfitted_model, self.X, self.y, years=self.years)
+
+        test_scores = calibrator.predict_proba(X_test)
+        y_pred = (test_scores >= self.FINAL_TEST_DECISION_THRESHOLD).astype(int)
+
+        # Reuse WalkForwardCV's own metric math instead of duplicating it.
+        metrics_helper = WalkForwardCV(min_fraud_per_fold=self.min_fraud_per_fold)
+        fold_metrics = metrics_helper._calculate_fold_metrics(
+            y_test=y_test,
+            y_score=test_scores,
+            y_pred=y_pred,
+            test_year=0,
+            train_size=len(self.X),
+            decision_threshold=self.FINAL_TEST_DECISION_THRESHOLD,
+            calibrate=True,
+            raw_brier=None,
+        )
+        fold_metrics.pop("test_year")
+        fold_metrics.pop("ece", None)
+        fold_metrics.pop("mce", None)
+        fold_metrics["test_period"] = (
+            f"{self.FINAL_TEST_START_YEAR}-{self.FINAL_TEST_END_YEAR}"
+        )
+        fold_metrics["selected_trial_number"] = self.best_trial_number
+        fold_metrics["threshold_tuned_on_test"] = False
+
+        calibration_metrics = evaluate_calibration(y_test, test_scores)
+
+        predictions_df = pd.DataFrame(
+            {
+                "filing_year": years_test,
+                "filing_date": test_filing_dates.dt.strftime("%Y-%m-%d"),
+                "true_label": y_test,
+                "predicted_probability": test_scores,
+                "predicted_label": y_pred,
+                "decision_threshold": self.FINAL_TEST_DECISION_THRESHOLD,
+            }
+        )
+
+        summary_path, predictions_path, calibration_path = (
+            self._final_test_artifact_paths()
+        )
+
+        with open(summary_path, "w", encoding="utf-8") as file:
+            json.dump(fold_metrics, file, indent=4)
+        predictions_df.to_csv(predictions_path, index=False)
+        with open(calibration_path, "w", encoding="utf-8") as file:
+            json.dump(calibration_metrics, file, indent=4)
+
+        logger.info("Final test summary saved to %s", summary_path)
+        logger.info("Final test predictions saved to %s", predictions_path)
+        logger.info("Final test calibration saved to %s", calibration_path)
+
+        logger.info("=" * 70)
+        logger.info("SEALED TEST RESULT (2019-2022, one-time)")
+        for metric_name in self.SUMMARY_METRICS:
+            if metric_name in fold_metrics:
+                logger.info("%-15s : %.6f", metric_name, fold_metrics[metric_name])
+        logger.info("=" * 70)
+
+        return fold_metrics
+
+    def _log_section_header(self, title: str) -> None:
+        logger.info("=" * 70)
+        logger.info(title)
         logger.info("=" * 70)
 
 
@@ -1563,6 +1574,11 @@ def review_xgboost_candidates(
 def run_selected_xgboost_shap() -> None:
     """Run SHAP for a persisted eligible v2 winner without retraining candidates."""
     XGBoostBaseline().run_selected_candidate_shap()
+
+
+def evaluate_selected_xgboost_on_test() -> dict[str, Any]:
+    """Run the one-time sealed 2019-2022 evaluation for the selected winner."""
+    return XGBoostBaseline().run_final_test_evaluation()
 
 
 def main() -> None:
