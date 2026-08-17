@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT = "xgboost_lm_text_surface_probability_v2"
 REPORT_DIR = ROOT / "reports" / "models" / EXPERIMENT
 LABEL_MATURITY_DIR = ROOT / "reports" / "label_maturity"
+EVIDENCE_DIR = ROOT / "demo" / "artifacts"
 
 REQUIRED_REVIEW_FIELDS = {
     "status",
@@ -100,112 +101,29 @@ def select_candidate(review: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_payload() -> dict[str, Any]:
-    """Assemble only persisted evidence for the presentation page."""
-    review = read_json(REPORT_DIR / "candidate_review_full_refit.json")
-    final_test = read_json(REPORT_DIR / "final_test" / "final_test_summary.json")
-    maturity = read_json(LABEL_MATURITY_DIR / "label_maturity_summary.json")
-    require_fields("Candidate review", review, REQUIRED_REVIEW_FIELDS)
-    require_fields("Final-test summary", final_test, REQUIRED_FINAL_TEST_FIELDS)
-    require_fields("Label-maturity summary", maturity, REQUIRED_MATURITY_FIELDS)
-    selected = select_candidate(review)
-    require_fields("Selected candidate", selected, {"trial_number", "metrics"})
-    development = selected["metrics"]
+    """Load the small, versioned historical evidence bundle."""
+    payload = read_json(EVIDENCE_DIR / "historical_evidence.json")
     require_fields(
-        "Development metrics",
-        development,
+        "Historical evidence",
+        payload,
         {
-            "n_folds",
-            "years_evaluated",
-            "recall_at_5_percent",
-            "precision_at_5_percent",
-            "pr_auc",
-            "brier_skill_score",
+            "schema_version",
+            "development_validation_status",
+            "frozen_result_status",
+            "development",
+            "final_test",
+            "label_maturity",
         },
     )
-    for metric_name in (
-        "recall_at_5_percent",
-        "precision_at_5_percent",
-        "pr_auc",
-        "brier_skill_score",
-    ):
-        require_fields(
-            f"Development metric {metric_name}", development[metric_name], {"mean"}
-        )
-    require_fields(
-        "Observed label delay",
-        maturity["observed_label_delay"],
-        {"median_days", "p90_days", "labels_recorded_after_2022_12_31"},
-    )
-    require_fields("Label coverage", maturity["coverage"], {"positive_filing_labels"})
-    require_fields(
-        "P90 label maturity",
-        maturity["empirical_maturity_thresholds"]["p90"],
-        {"filings_on_or_before"},
-    )
-
-    return {
-        "experiment": EXPERIMENT,
-        "trial": selected["trial_number"],
-        "selection_rule": review["selection_rule"],
-        "development": {
-            "folds": development["n_folds"],
-            "years": development["years_evaluated"],
-            "recall_at_5": development["recall_at_5_percent"]["mean"],
-            "precision_at_5": development["precision_at_5_percent"]["mean"],
-            "pr_auc": development["pr_auc"]["mean"],
-            "brier_skill": development["brier_skill_score"]["mean"],
+    payload["shap"] = load_shap_importance(EVIDENCE_DIR / "shap_importance.csv")
+    payload["artifacts"] = [
+        {
+            "label": "Versioned historical evidence",
+            "path": "artifacts/historical_evidence.json",
         },
-        "final_test": {
-            "period": final_test["test_period"],
-            "filings": final_test["test_n"],
-            "fraud_cases": final_test["test_fraud_n"],
-            "reviewed": final_test["review_n_at_5_percent"],
-            "fraud_found": round(
-                final_test["recall_at_5_percent"] * final_test["test_fraud_n"]
-            ),
-            "recall_at_5": final_test["recall_at_5_percent"],
-            "precision_at_5": final_test["precision_at_5_percent"],
-            "roc_auc": final_test["roc_auc"],
-            "pr_auc": final_test["pr_auc"],
-            "brier_skill": final_test["brier_skill_score"],
-            "calibrated": final_test["calibrated"],
-            "threshold": final_test["decision_threshold"],
-            "threshold_tuned_on_test": final_test["threshold_tuned_on_test"],
-        },
-        "label_maturity": {
-            "median_days": maturity["observed_label_delay"]["median_days"],
-            "p90_days": maturity["observed_label_delay"]["p90_days"],
-            "after_2022": maturity["observed_label_delay"][
-                "labels_recorded_after_2022_12_31"
-            ],
-            "positive_labels": maturity["coverage"]["positive_filing_labels"],
-            "p90_cutoff": maturity["empirical_maturity_thresholds"]["p90"][
-                "filings_on_or_before"
-            ],
-        },
-        "shap": load_shap_importance(REPORT_DIR / "shap" / "shap_importance.csv"),
-        "artifacts": [
-            {
-                "label": "Candidate-selection review",
-                "path": "../reports/models/xgboost_lm_text_surface_probability_v2/"
-                "candidate_review_full_refit.json",
-            },
-            {
-                "label": "Frozen-test metrics",
-                "path": "../reports/models/xgboost_lm_text_surface_probability_v2/"
-                "final_test/final_test_summary.json",
-            },
-            {
-                "label": "Label-maturity audit",
-                "path": "../reports/label_maturity/label_maturity_summary.json",
-            },
-            {
-                "label": "SHAP feature importance",
-                "path": "../reports/models/xgboost_lm_text_surface_probability_v2/"
-                "shap/shap_importance.csv",
-            },
-        ],
-    }
+        {"label": "Versioned historical SHAP", "path": "artifacts/shap_importance.csv"},
+    ]
+    return payload
 
 
 def render_html(payload: dict[str, Any]) -> str:
@@ -271,12 +189,12 @@ def render_html(payload: dict[str, Any]) -> str:
     const maxShap = Math.max(...d.shap.map(item => item.importance));
     const shap = d.shap.map(item => `<div class="bar-row"><span>${{item.feature}}</span><div class="bar"><span style="width:${{100 * item.importance / maxShap}}%"></span></div><span>${{item.importance.toFixed(3)}}</span></div>`).join('');
     document.querySelector('#app').innerHTML = `
-      <section class="callout"><strong>Headline result:</strong> Trial ${{d.trial}} selected by walk-forward validation found ${{test.fraud_found}} of ${{test.fraud_cases}} recorded fraud cases in the top 5% review queue on ${{test.period}} filings. But its final Brier skill was <span class="negative">${{dec(test.brier_skill)}}</span>, so the calibrated probabilities did not beat the naive fraud-rate baseline.</section>
+      <section class="callout"><strong>Development validation invalidated:</strong> Trial ${{d.trial}} was selected using reporting-year folds that admitted later filings into training. Its old development metrics are archived, not trustworthy evidence. The historical final result found ${{test.fraud_found}} of ${{test.fraud_cases}} recorded cases, but is nonconfirmatory and must not be rerun.</section>
       <section><h2>How the research workflow works</h2><div class="flow"><div>Chronological training</div><div>Walk-forward validation</div><div>Top-5% analyst queue</div><div>One-time final test</div></div></section>
       <section><h2>Model selection: development period</h2><p>Selected Trial ${{d.trial}} with the pre-defined rule: ${{d.selection_rule}}.</p><div class="grid"><div class="card"><h3>Walk-forward folds</h3><strong>${{dev.folds}}</strong></div><div class="card"><h3>Recall at 5%</h3><strong>${{pct(dev.recall_at_5)}}</strong></div><div class="card"><h3>Precision at 5%</h3><strong>${{pct(dev.precision_at_5)}}</strong></div><div class="card"><h3>Development Brier skill</h3><strong class="${{cls(dev.brier_skill)}}">${{dec(dev.brier_skill)}}</strong></div></div></section>
       <section><h2>Frozen final evaluation: ${{test.period}}</h2><div class="grid"><div class="card"><h3>Filings / fraud cases</h3><strong>${{test.filings.toLocaleString()}} / ${{test.fraud_cases}}</strong></div><div class="card"><h3>Top-5% review queue</h3><strong>${{test.reviewed.toLocaleString()}}</strong></div><div class="card"><h3>Recall at 5%</h3><strong>${{pct(test.recall_at_5)}}</strong></div><div class="card"><h3>Precision at 5%</h3><strong>${{pct(test.precision_at_5)}}</strong></div><div class="card"><h3>PR-AUC</h3><strong>${{dec(test.pr_auc)}}</strong></div><div class="card"><h3>Brier skill</h3><strong class="${{cls(test.brier_skill)}}">${{dec(test.brier_skill)}}</strong></div></div><p><strong>Recall@5% means:</strong> rank all filings by the model score, send only the highest-scoring 5% to analyst review, then measure what share of the recorded misconduct cases appears in that queue. It is a ranking metric, not a claim that the displayed probabilities are reliable.</p><p>Calibration was used; the classification threshold was fixed at ${{test.threshold.toFixed(2)}} and was not tuned on the test set.</p></section>
       <section class="two"><div><h2>Why later labels need caution</h2><p>Every observed positive label first appeared after its filing date. The median observed delay was <strong>${{Math.round(maturity.median_days).toLocaleString()}} days</strong>.</p><p><strong>${{maturity.after_2022}} of ${{maturity.positive_labels}}</strong> final-period labels first appeared after 2022 ended.</p><p class="warning">At the empirical p90 delay threshold, only filings on or before ${{date(maturity.p90_cutoff)}} are conditionally mature.</p></div><div><h2>Top explanatory features</h2><p>Mean absolute SHAP value from the selected development model.</p>${{shap}}</div></section>
-      <section><h2>Interpretation</h2><ul><li><strong>Working pipeline:</strong> Candidate selection, calibration, ranking metrics, SHAP, and a sealed final evaluation are reproducible.</li><li><strong>Clear result:</strong> Historical development performance did not carry into the later period with trustworthy probability calibration.</li><li><strong>Next research step:</strong> improve label provenance and test a new feature family on development data only; do not tune against the frozen final test.</li></ul><p><strong>Evidence files:</strong> ${{d.artifacts.map(item => `<a href="${{item.path}}">${{item.label}}</a>`).join(' &middot; ')}}</p></section>`;
+      <section><h2>Interpretation</h2><ul><li><strong>Invalidated selection:</strong> the original development folds were not strictly chronological by filing date.</li><li><strong>Historical final result is nonconfirmatory:</strong> it belongs to the invalidated selection pipeline and remains permanently closed.</li><li><strong>Next research step:</strong> rebuild and evaluate development data with strict filing-time folds only.</li></ul><p><strong>Evidence files:</strong> ${{d.artifacts.map(item => `<a href="${{item.path}}">${{item.label}}</a>`).join(' &middot; ')}}</p></section>`;
   </script>
 </body>
 </html>"""
@@ -300,10 +218,7 @@ def main() -> None:
 
     payload = build_payload()
     if args.check:
-        print(
-            f"Validated demo artifacts for Trial {payload['trial']} "
-            f"({payload['final_test']['period']})."
-        )
+        print("Validated versioned historical demo evidence.")
         return
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

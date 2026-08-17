@@ -40,6 +40,8 @@ from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 from src.evaluation.calibration import ProbabilityCalibrator, evaluate_calibration
 from src.evaluation.cross_validation import WalkForwardCV
+from src.evaluation.temporal import filing_years
+from src.utils.fingerprints import sha256_file, sha256_json
 from src.utils.logger import get_logger
 from xgboost import XGBClassifier
 
@@ -57,7 +59,7 @@ class XGBoostBaseline:
     Evaluation logic is delegated to WalkForwardCV.
     """
 
-    EXPERIMENT_NAME = "xgboost_lm_text_surface_probability_v2"
+    EXPERIMENT_NAME = "xgboost_lm_text_surface_probability_v3_strict_time"
 
     MODEL_NAME = EXPERIMENT_NAME
 
@@ -124,6 +126,8 @@ class XGBoostBaseline:
     XGBOOST_DEVICE = "cuda"
 
     PROBABILITY_SCALE_POS_WEIGHT = 1.0
+
+    EVALUATION_CONTRACT_VERSION = "strict-filing-time-v1"
 
     SUMMARY_METRICS = (
         "roc_auc",
@@ -204,8 +208,30 @@ class XGBoostBaseline:
         feature_schema = json.dumps(self.FEATURE_COLUMNS, separators=(",", ":"))
         return hashlib.sha256(feature_schema.encode("utf-8")).hexdigest()
 
+    def _current_artifact_contract(self) -> dict[str, Any]:
+        """Describe the exact development data and evaluation policy."""
+
+        return {
+            "contract_version": self.EVALUATION_CONTRACT_VERSION,
+            "experiment_name": self.EXPERIMENT_NAME,
+            "development_data_sha256": sha256_file(self.INPUT_FILE),
+            "feature_schema_sha256": self._feature_schema_hash(),
+            "calibration": {
+                "method": self.DEFAULT_CALIBRATION_METHOD,
+                "strategy": self.DEFAULT_CALIBRATION_STRATEGY,
+                "holdout_fraction": self.DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
+            },
+            "selection": {
+                "review_size": self.CANDIDATE_REVIEW_SIZE,
+                "primary": "recall_at_5_percent",
+                "eligibility": "brier_skill_score > 0",
+                "tie_breaker": "pr_auc",
+            },
+        }
+
     def save_experiment_manifest(self) -> None:
         """Persist the fixed inputs and settings for this experiment."""
+        artifact_contract = self._current_artifact_contract()
         manifest = {
             "experiment_name": self.EXPERIMENT_NAME,
             "model_name": self.MODEL_NAME,
@@ -223,6 +249,8 @@ class XGBoostBaseline:
             "chronological_calibration_refits_full_training_fold": True,
             "scale_pos_weight": self.PROBABILITY_SCALE_POS_WEIGHT,
             "xgboost_device": self.XGBOOST_DEVICE,
+            "artifact_contract": artifact_contract,
+            "artifact_contract_sha256": sha256_json(artifact_contract),
         }
 
         with open(self.EXPERIMENT_MANIFEST_FILE, "w", encoding="utf-8") as file:
@@ -346,7 +374,7 @@ class XGBoostBaseline:
 
         X = feature_frame.to_numpy(dtype=np.float32, copy=True)
         y = dataset[self.TARGET_COLUMN].astype(np.int8).to_numpy()
-        years = dataset[self.YEAR_COLUMN].astype(np.int32).to_numpy()
+        years = filing_years(dataset[self.FILING_DATE_COLUMN])
 
         if len(X) != len(y) or len(X) != len(years):
             raise RuntimeError(
@@ -507,7 +535,7 @@ class XGBoostBaseline:
             summary = self.run_cross_validation(
                 model=self.build_tuned_model(),
                 calibrate=True,
-                optimize_threshold=True,
+                optimize_threshold=False,
                 fit_raw_reference=False,
                 persist_results=True,
                 model_name=f"{self.MODEL_NAME}_trial_{trial.number}_full_refit",
@@ -545,6 +573,7 @@ class XGBoostBaseline:
             "candidate_count": len(candidates),
             "selected_trial_number": self.best_trial_number,
             "candidates": candidates,
+            "artifact_contract": self._current_artifact_contract(),
         }
         with open(self.CANDIDATE_REVIEW_FILE, "w", encoding="utf-8") as file:
             json.dump(review, file, indent=4)
@@ -569,6 +598,7 @@ class XGBoostBaseline:
             "candidate_count": len(candidates),
             "selected_trial_number": None,
             "candidates": candidates,
+            "artifact_contract": self._current_artifact_contract(),
         }
         with open(self.CANDIDATE_REVIEW_FILE, "w", encoding="utf-8") as file:
             json.dump(review, file, indent=4)
@@ -600,6 +630,18 @@ class XGBoostBaseline:
                 "Candidate review has no eligible winner "
                 f"(status={review.get('status')!r}); the sealed test set must "
                 "not be evaluated without a selected candidate."
+            )
+
+        expected = self._current_artifact_contract()
+        actual = review.get("artifact_contract")
+        if actual != expected:
+            differing = sorted(
+                key
+                for key in set(expected) | set(actual or {})
+                if expected.get(key) != (actual or {}).get(key)
+            )
+            raise RuntimeError(
+                "Candidate artifact contract mismatch: " + ", ".join(differing)
             )
 
         return review
@@ -769,7 +811,7 @@ class XGBoostBaseline:
         calibration_cv: int | None = None,
         calibration_strategy: str | None = None,
         calibration_holdout_fraction: float | None = None,
-        optimize_threshold: bool = True,
+        optimize_threshold: bool = False,
         fit_raw_reference: bool = False,
         persist_results: bool = True,
         model_name: str | None = None,
@@ -847,7 +889,7 @@ class XGBoostBaseline:
         return self.run_cross_validation(
             model=model,
             calibrate=False,
-            optimize_threshold=True,
+            optimize_threshold=False,
         )
 
     def evaluate_best_model(
@@ -868,7 +910,7 @@ class XGBoostBaseline:
         return self.run_cross_validation(
             model=model,
             calibrate=calibrate,
-            optimize_threshold=True,
+            optimize_threshold=False,
             fit_raw_reference=False,
         )
 
@@ -943,6 +985,7 @@ class XGBoostBaseline:
             "best_trial_number": self.best_trial_number,
             "best_parameters": self.best_params,
             "feature_schema_sha256": self._feature_schema_hash(),
+            "artifact_contract": self._current_artifact_contract(),
         }
 
         with open(self.MODEL_METADATA_FILE, "w", encoding="utf-8") as file:
@@ -1177,7 +1220,7 @@ class XGBoostBaseline:
         return self.run_cross_validation(
             model=model,
             calibrate=calibrate,
-            optimize_threshold=True,
+            optimize_threshold=False,
             fit_raw_reference=False,
         )
 
@@ -1436,6 +1479,10 @@ class XGBoostBaseline:
             The full final_test_summary.json payload.
         """
 
+        raise RuntimeError(
+            "The historical 2019-2022 final test is permanently closed "
+            "and cannot be rerun."
+        )
         review = self._load_selected_candidate_review()
         selected = next(
             candidate
@@ -1577,8 +1624,10 @@ def run_selected_xgboost_shap() -> None:
 
 
 def evaluate_selected_xgboost_on_test() -> dict[str, Any]:
-    """Run the one-time sealed 2019-2022 evaluation for the selected winner."""
-    return XGBoostBaseline().run_final_test_evaluation()
+    """Refuse reuse of the already-opened historical final period."""
+    raise RuntimeError(
+        "The historical 2019-2022 final test is permanently closed and cannot be rerun."
+    )
 
 
 def main() -> None:

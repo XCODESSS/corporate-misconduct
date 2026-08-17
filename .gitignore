@@ -1,63 +1,98 @@
-# =========================
-# Raw datasets
-# =========================
-data/raw/
-data/interim/
-data/processed/
-artifacts/
+# Local datasets and generated research artifacts
+/data/raw/**
+/data/interim/**
+/data/processed/**
+/artifacts/
+/reports/**
+/logs/**
 
-# =========================
-# Large local files
-# =========================
-*.parquet
-*.csv
-*.json
+# Keep directory scaffolding and portable demo evidence
+!/data/raw/.gitkeep
+!/data/interim/.gitkeep
+!/data/processed/.gitkeep
+!/reports/figures/
+!/reports/figures/.gitkeep
+!/reports/hypotheses/
+!/reports/hypotheses/preregistered_hypotheses.md
+!/reports/tables/
+!/reports/tables/.gitkeep
+!/demo/artifacts/
+!/demo/artifacts/*.json
+!/demo/artifacts/*.csv
 
-# Keep config JSON/YAML tracked
-!configs/*.json
-!configs/*.yaml
-!data/raw/.gitkeep
-!data/interim/.gitkeep
-!data/processed/.gitkeep
+# Root-level local exports and duplicate source downloads
+/Loughran-McDonald_10X_Summaries_1993-2025.csv
+/hypothesis_test_results.csv
+/shap_importance.csv
+/report.md
 
-# =========================
-# Python cache / build artifacts
-# =========================
+# Agent-only plans and workspace state
+/.agents/
+/.codex/
+/.claude/
+/.cursor/
+/.gemini/
+/.windsurf/
+/.aider*
+/docs/superpowers/
+
+# Python environments, caches, tests, and build artifacts
+/.venv/
+/venv/
+/env/
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 *.so
 .pytest_cache/
+.pytest_tmp/
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
 .build/
+build/
 dist/
 site/
 .eggs/
 *.egg-info/
 
-# =========================
-# Notebook / editor artifacts
-# =========================
-.ipynb_checkpoints/
-.vscode/
-.idea/
-
-# =========================
-# Project-specific generated files
-# =========================
-src/**/__pycache__/
-src/evaluation/
-reports/
+# Generated model and optimizer files outside ignored output folders
+*.joblib
+*.pkl
+*.pickle
+*.onnx
+*.pt
+*.pth
+*.ckpt
 *.db
 *.sqlite
 *.sqlite3
 *_best_params.json
 *_trials.csv
 *_optuna.db
+
+# Local configuration, secrets, temporary files, and logs
+.env
+.env.*
+!.env.example
+*.local
+*.log
 *.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Notebook, editor, and operating-system artifacts
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

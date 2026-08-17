@@ -1,10 +1,10 @@
 # Corporate Misconduct Warning
 
-Leakage-aware XGBoost research pipeline for ranking corporate filings into a fixed misconduct-review queue. The project uses chronological walk-forward validation, probability calibration, Recall@5% as its operational metric, and a one-time sealed final evaluation.
+Research pipeline for testing whether filing language can rank corporate filings into a fixed 5% misconduct-review queue. The project is repairing a discovered temporal-validation flaw and must not be treated as a production fraud detector.
 
-## Research-demo result
+## Historical result — validation invalidated
 
-The selected development candidate, Trial 196, achieved mean Recall@5% of 26.22% across 21 walk-forward folds. On the frozen 2019-2022 final period, it found 7 of 58 recorded cases in a 5% review queue (Recall@5% 12.07%), but its Brier skill was -0.0201. The model is therefore a research prototype, not a deployable probability model.
+Trial 196 previously reported development Recall@5% of 26.22%, but that result is invalid because `filing_year` was derived from `reporting_date`; every evaluated fold contained later filings in training. Its already-observed 2019-2022 result—7 of 58 recorded cases in a 5% queue, Recall@5% 12.07%, Brier skill -0.0201—is retained only as a historical, nonconfirmatory artifact and will not be rerun.
 
 Generate the local static demo without training or reopening the final test:
 
@@ -19,20 +19,16 @@ and the observed label-delay limitation. Read the full
 
 ## Why the timeline matters
 
-Random validation can leak future context into a historical-looking score.
-This project trains only on earlier filings and evaluates later periods through
-walk-forward folds, then uses a one-time frozen 2019-2022 evaluation. The
-result is deliberately mixed: the development ranking signal was promising,
-but final-period probability calibration was not.
+The repaired evaluation derives fold membership from the actual `filing_date` and requires `max(training filing_date) < min(test filing_date)`. `reporting_year` is retained separately and cannot control evaluation folds.
 
 ```text
-Earlier filings -> chronological training -> walk-forward candidate selection
+Actual filing dates -> strict chronological training -> development selection
                                               |
                                               v
                                fixed 5% analyst-review queue
                                               |
                                               v
-                                  one-time frozen 2019-2022 result
+                                  development-only result
 ```
 
 ## Limitations and next step
@@ -42,9 +38,7 @@ compliance, or investment decisions. Labels arrive with substantial observed
 delay (median 1,237 days), so the frozen period has material label-maturity
 uncertainty as well as failed calibration.
 
-The next research-only improvement is issuer-history language features—prior
-year deltas, rolling issuer baselines, and peer-relative language abnormalities.
-They will be evaluated on development folds only; the final test remains sealed.
+The next step is to rebuild development features, pass the temporal audit, and request separate approval for a new development-only experiment. The historical final period is permanently closed.
 
 ## Structure
 
@@ -57,7 +51,19 @@ They will be evaluated on development folds only; the final test remains sealed.
 
 ## Data
 
-Place the source CSV at `data/raw/lm_summaries/Loughran-McDonald_10X_Summaries_1993-2025.csv`.
+Place the source CSV at `data/raw/lm/Loughran-McDonald_10X_Summaries_1993-2025.csv`.
+
+Create a clean Python 3.12 environment:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dev.txt
+python -m pytest tests -q
+```
+
+CUDA, training libraries, and model artifacts are not required to open the static demo.
 
 ## Code quality
 

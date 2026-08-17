@@ -27,6 +27,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 from sklearn.dummy import DummyClassifier
 from src.evaluation.cross_validation import WalkForwardCV
+from src.evaluation.temporal import filing_years
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -146,7 +147,7 @@ class DummyBaseline:
 
         self.y = df[self.TARGET_COLUMN].astype(int).to_numpy()
 
-        self.years = df[self.YEAR_COLUMN].astype(np.int32).to_numpy()
+        self.years = filing_years(df["filing_date"])
 
         logger.info(
             "Fraud prevalence: %.2f%%",
@@ -224,6 +225,7 @@ class DummyBaseline:
             years=self.years,
             model_name=self.MODEL_NAME,
             decision_threshold=0.5,
+            optimize_threshold=False,
         )
 
         self.cv_summary = summary

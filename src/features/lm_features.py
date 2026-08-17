@@ -40,6 +40,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from src.evaluation.temporal import filing_years
 from src.features.text_surface_features import add_text_surface_features
 from src.utils.logger import get_logger
 
@@ -141,6 +142,7 @@ class LMFeatureEngineer:
     ) -> pd.Series:
         return pd.to_datetime(
             series,
+            dayfirst=True,
             errors="coerce",
         ).dt.year
 
@@ -150,12 +152,13 @@ class LMFeatureEngineer:
     ) -> pd.DataFrame:
         df["cik"] = self.normalize_cik(df["cik"])
 
-        df["filing_year"] = self.extract_year(df["reporting_date"])
+        df["filing_year"] = filing_years(df["filing_date"])
+        df["reporting_year"] = self.extract_year(df["reporting_date"])
 
-        if missing := df["filing_year"].isna().sum():
+        if missing := df["reporting_year"].isna().sum():
             raise ValueError(f"{missing} rows have invalid reporting_date.")
 
-        df["filing_year"] = df["filing_year"].astype(np.int32)
+        df["reporting_year"] = df["reporting_year"].astype(np.int32)
 
         return df
 
@@ -179,14 +182,14 @@ class LMFeatureEngineer:
         train_keys = set(
             zip(
                 train["cik"],
-                train["filing_year"],
+                train["reporting_year"],
             )
         )
 
         test_keys = set(
             zip(
                 test["cik"],
-                test["filing_year"],
+                test["reporting_year"],
             )
         )
 
@@ -343,7 +346,7 @@ class LMFeatureEngineer:
         for row in df.itertuples(index=False):
             key = (
                 row.cik,
-                row.filing_year,
+                row.reporting_year,
             )
 
             values = lookup.get(
@@ -631,6 +634,25 @@ class LMFeatureEngineer:
 
 def engineer_lm_features() -> None:
     LMFeatureEngineer().run()
+
+
+def engineer_development_features() -> Path:
+    """Build development features without reading or writing the held-out split."""
+
+    engineer = LMFeatureEngineer()
+    engineer.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    development = engineer.prepare_dataset(
+        engineer.load_dataset(engineer.TRAINVAL_FILE, "trainval")
+    )
+    required_keys = set(zip(development["cik"], development["reporting_year"]))
+    lookup = engineer.build_lm_lookup(required_keys)
+    engineer.process_dataset(
+        engineer.TRAINVAL_FILE,
+        engineer.TRAINVAL_OUTPUT,
+        lookup,
+        "trainval",
+    )
+    return engineer.TRAINVAL_OUTPUT
 
 
 def main() -> None:

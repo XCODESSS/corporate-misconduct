@@ -1,8 +1,4 @@
-﻿models:
+models:
+  - dummy_classifier
   - logistic_regression
-  - random_forest
   - xgboost
-  - lightgbm
-  - catboost
-  - neural_network
-

@@ -1,0 +1,11 @@
+feature,mean_abs_shap
+constraining_density,0.4182469
+strong_modal_density,0.3609137
+mda_punctuation_ratio,0.34825772
+mda_lexical_diversity,0.3372001
+weak_modal_density,0.33590245
+litigious_density,0.33578947
+mda_digit_ratio,0.330834
+mda_complex_word_ratio,0.31471375
+negative_density,0.30938724
+mda_uppercase_ratio,0.30654615

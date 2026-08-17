@@ -22,24 +22,20 @@ def load_demo_module():
     return module
 
 
-def test_demo_payload_matches_frozen_artifacts() -> None:
-    """Headline metrics must be sourced from, not copied apart from, evidence files."""
+def test_demo_payload_matches_versioned_historical_evidence() -> None:
+    """The portable demo must use its tracked historical evidence bundle."""
     demo = load_demo_module()
     payload = demo.build_payload()
-    final_path = (
-        ROOT
-        / "reports"
-        / "models"
-        / demo.EXPERIMENT
-        / "final_test"
-        / "final_test_summary.json"
+    evidence = json.loads(
+        (ROOT / "demo" / "artifacts" / "historical_evidence.json").read_text(
+            encoding="utf-8"
+        )
     )
-    frozen = json.loads(final_path.read_text(encoding="utf-8"))
 
     assert payload["trial"] == 196
-    assert payload["development"]["recall_at_5"] == 0.262216
-    assert payload["final_test"]["recall_at_5"] == frozen["recall_at_5_percent"]
-    assert payload["final_test"]["brier_skill"] == frozen["brier_skill_score"]
+    assert payload["development_validation_status"] == "invalidated_temporal_overlap"
+    assert payload["frozen_result_status"] == "historical_nonconfirmatory"
+    assert payload["final_test"] == evidence["final_test"]
     assert payload["final_test"]["fraud_found"] == 7
     assert payload["final_test"]["fraud_cases"] == 58
 
@@ -60,7 +56,8 @@ def test_demo_generation_is_fast_and_contains_required_cautions(tmp_path: Path) 
     assert "Demo page written to" in completed.stdout
     assert "RESEARCH PROTOTYPE - NOT A DEPLOYMENT DECISION TOOL" in page
     assert "Recall@5% means:" in page
-    assert "did not beat the naive fraud-rate baseline" in page
+    assert "Development validation invalidated" in page
+    assert "historical final result is nonconfirmatory" in page.lower()
     assert "label" in page.lower()
     assert '"fraud_found": 7' in page
     assert '"fraud_cases": 58' in page
@@ -79,3 +76,12 @@ def test_demo_source_does_not_invoke_training_or_sealed_evaluation() -> None:
     )
 
     assert not [call for call in forbidden_calls if call in source]
+
+
+def test_demo_source_does_not_depend_on_reports_directory() -> None:
+    source = GENERATOR_PATH.read_text(encoding="utf-8")
+    build_payload_source = source[
+        source.index("def build_payload") : source.index("def render_html")
+    ]
+    assert "REPORT_DIR" not in build_payload_source
+    assert "EVIDENCE_DIR" in build_payload_source

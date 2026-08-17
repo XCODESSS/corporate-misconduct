@@ -31,6 +31,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from src.evaluation.cross_validation import WalkForwardCV
+from src.evaluation.temporal import filing_years
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -177,7 +178,7 @@ class LogisticRegressionBaseline:
 
         self.X = feature_frame.to_numpy(dtype=np.float64)
         self.y = df[self.TARGET_COLUMN].astype(np.int64).to_numpy()
-        self.years = df[self.YEAR_COLUMN].astype(np.int32).to_numpy()
+        self.years = filing_years(df["filing_date"])
 
         if not np.isin(self.y, [0, 1]).all():
             raise ValueError(f"{self.TARGET_COLUMN} must be binary.")
@@ -304,6 +305,7 @@ class LogisticRegressionBaseline:
             decision_threshold=self.decision_threshold,
             calibrate=calibrate,
             calibration_method=self.calibration_method,
+            optimize_threshold=False,
         )
 
         self.cv_summary = summary

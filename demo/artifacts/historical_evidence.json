@@ -1,0 +1,42 @@
+{
+  "schema_version": "historical-demo-evidence-v1",
+  "experiment": "xgboost_lm_text_surface_probability_v2",
+  "trial": 196,
+  "selection_rule": "positive mean Brier skill score; highest mean Recall@5%; mean PR-AUC tie-breaker",
+  "development_validation_status": "invalidated_temporal_overlap",
+  "frozen_result_status": "historical_nonconfirmatory",
+  "development": {
+    "folds": 21,
+    "recall_at_5": 0.262216,
+    "precision_at_5": 0.144624,
+    "pr_auc": 0.149498,
+    "brier_skill": 0.021271
+  },
+  "final_test": {
+    "period": "2019-2022",
+    "filings": 14582,
+    "fraud_cases": 58,
+    "reviewed": 730,
+    "fraud_found": 7,
+    "recall_at_5": 0.1206896551724138,
+    "precision_at_5": 0.009589041095890411,
+    "roc_auc": 0.6282799456784964,
+    "pr_auc": 0.025158108065592783,
+    "brier_skill": -0.020106618445109747,
+    "calibrated": true,
+    "threshold": 0.5,
+    "threshold_tuned_on_test": false
+  },
+  "label_maturity": {
+    "median_days": 1236.5,
+    "after_2022": 39,
+    "positive_labels": 58,
+    "p90_cutoff": "2020-01-31 21:08:41"
+  },
+  "source_sha256": {
+    "candidate_review_full_refit.json": "86ad59751fc3a33567461bfda1e5235e56972a9c487b93c5bce7dde408e2020b",
+    "final_test_summary.json": "48bd2c5eead3d99c4d0927717de2235ca8f942ba7e76044fcfd5a3c604c2d4be",
+    "label_maturity_summary.json": "9e073bedc7ecaef899dbc9fe672b0232e8f0ff2e6b989c616d92ffb3f04c0802",
+    "shap_importance.csv": "3277e93b1fe9b6a224ebe9e0bed3ba730b28f43cc3aff10a231d950020ab4b6b"
+  }
+}

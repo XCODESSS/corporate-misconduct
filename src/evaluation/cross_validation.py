@@ -205,7 +205,7 @@ class WalkForwardCV:
         calibration_strategy: str = DEFAULT_CALIBRATION_STRATEGY,
         calibration_holdout_fraction: float = DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
         fit_raw_reference: bool = True,
-        optimize_threshold: bool = True,
+        optimize_threshold: bool = False,
     ) -> dict[str, Any]:
         """
         Fit estimator on train split, evaluate on test split.
@@ -384,9 +384,12 @@ class WalkForwardCV:
         default_threshold: float,
         should_optimize: bool,
     ) -> float:
-        if not should_optimize:
-            return default_threshold
-        return self.find_best_threshold(y_train, train_score, default_threshold)
+        if should_optimize:
+            raise ValueError(
+                "threshold optimization requires independent "
+                "threshold-validation scores"
+            )
+        return default_threshold
 
     def _calculate_fold_metrics(
         self,
@@ -716,7 +719,7 @@ class WalkForwardCV:
         calibration_strategy: str = DEFAULT_CALIBRATION_STRATEGY,
         calibration_holdout_fraction: float = DEFAULT_CALIBRATION_HOLDOUT_FRACTION,
         fit_raw_reference: bool = True,
-        optimize_threshold: bool = True,
+        optimize_threshold: bool = False,
         persist_results: bool = True,
     ) -> dict[str, Any]:
         """
